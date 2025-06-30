@@ -1,0 +1,162 @@
+.register-container {
+  display: flex;
+  width: 1000px;
+  min-height: 650px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.company-info {
+  flex: 1;
+  background: linear-gradient(135deg, #2a5298, #1e3c72);
+  color: white;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.logo-icon {
+  font-size: 2.5rem;
+  margin-right: 15px;
+  vertical-align: middle;
+}
+
+.logo h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.tagline {
+  font-size: 1rem;
+  margin-bottom: 30px;
+  opacity: 0.9;
+}
+
+.company-image {
+  flex: 1;
+  background-image: url('https://images.unsplash.com/photo-1632759145351-1d592919f522?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1074&q=80');
+  background-size: cover;
+  background-position: center;
+  border-radius: 8px;
+  min-height: 250px;
+}
+
+.register-form {
+  flex: 1.2;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.register-form h2 {
+  font-size: 1.8rem;
+  color: #333;
+  margin-bottom: 25px;
+}
+
+.input-group {
+  margin-bottom: 15px;
+  position: relative;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #555;
+}
+
+.input-with-icon {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #aaa;
+}
+
+.input-with-icon input {
+  width: 100%;
+  padding: 12px 12px 12px 45px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.input-with-icon input:focus {
+  outline: none;
+  border-color: #1e3c72;
+}
+
+.error-message {
+  color: #e74c3c;
+  font-size: 0.8rem;
+  margin-top: 5px;
+  display: block;
+}
+
+.register-btn {
+  background: linear-gradient(135deg, #2a5298, #1e3c72);
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 5px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin-top: 10px;
+}
+
+.register-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(30, 60, 114, 0.3);
+}
+
+.register-footer {
+  margin-top: 20px;
+  text-align: center;
+  color: #777;
+  font-size: 0.9rem;
+}
+
+.register-footer a {
+  color: #1e3c72;
+  text-decoration: none;
+}
+
+.register-footer a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .register-container {
+    flex-direction: column;
+    width: 95%;
+    max-width: 600px;
+  }
+  
+  .company-info {
+    padding: 30px;
+  }
+  
+  .company-image {
+    min-height: 150px;
+  }
+}
