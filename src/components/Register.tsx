@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { FaUser, FaLock, FaEnvelope, FaPhone, FaBuilding, FaHome } from 'react-icons/fa';
+import { FaUser, FaLock, FaEnvelope, FaImage, FaUserTag, FaHome } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/Register.css';
 
 interface RegisterFormData {
-  fullName: string;
   email: string;
-  phone: string;
-  companyName: string;
   username: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  avatar_url: string;
   password: string;
   confirmPassword: string;
 }
@@ -18,11 +19,12 @@ const Register: React.FC = () => {
   const navigate = useNavigate();
   const { signup } = useAuth();
   const [formData, setFormData] = useState<RegisterFormData>({
-    fullName: '',
     email: '',
-    phone: '',
-    companyName: '',
     username: '',
+    first_name: '',
+    last_name: '',
+    role: 'User', // Default role
+    avatar_url: '',
     password: '',
     confirmPassword: ''
   });
@@ -31,7 +33,7 @@ const Register: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
@@ -51,11 +53,6 @@ const Register: React.FC = () => {
     const newErrors: Partial<RegisterFormData> = {};
     let isValid = true;
 
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
-      isValid = false;
-    }
-
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
       isValid = false;
@@ -64,13 +61,18 @@ const Register: React.FC = () => {
       isValid = false;
     }
 
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
+    if (!formData.username.trim()) {
+      newErrors.username = 'Username is required';
       isValid = false;
     }
 
-    if (!formData.username.trim()) {
-      newErrors.username = 'Username is required';
+    if (!formData.first_name.trim()) {
+      newErrors.first_name = 'First name is required';
+      isValid = false;
+    }
+
+    if (!formData.last_name.trim()) {
+      newErrors.last_name = 'Last name is required';
       isValid = false;
     }
 
@@ -99,32 +101,47 @@ const Register: React.FC = () => {
       setIsSubmitting(true);
       
       try {
-        // Split full name into first and last name
-        const nameParts = formData.fullName.trim().split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
+        console.log('Form data validated successfully:', { 
+          email: formData.email,
+          username: formData.username,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          role: formData.role,
+          avatar_url: formData.avatar_url
+        });
         
         // Call the signup function from AuthContext
         const success = await signup(
           formData.email,
           formData.password,
           formData.username,
-          firstName,
-          lastName
+          formData.first_name,
+          formData.last_name,
+          formData.role
+          // Note: avatar_url is set as an empty string by default in the AuthContext
         );
         
         if (success) {
+          console.log('Registration successful, redirecting to login');
           // Redirect to login page on successful registration
           navigate('/login');
         } else {
-          setRegistrationError('Registration failed. Please try again.');
+          console.error('Registration failed: signup function returned false');
+          setRegistrationError('Registration failed. Please check the console for more details.');
         }
       } catch (error) {
         console.error('Registration error:', error);
-        setRegistrationError('An unexpected error occurred. Please try again.');
+        if (error instanceof Error) {
+          console.error('Error details:', error.message);
+          setRegistrationError(`Registration error: ${error.message}`);
+        } else {
+          setRegistrationError('An unexpected error occurred. Please try again.');
+        }
       } finally {
         setIsSubmitting(false);
       }
+    } else {
+      console.error('Form validation failed');
     }
   };
 
@@ -143,22 +160,6 @@ const Register: React.FC = () => {
         <h2>Create Account</h2>
         <form onSubmit={handleSubmit}>
           <div className="input-group">
-            <label htmlFor="fullName">Full Name</label>
-            <div className="input-with-icon">
-              <FaUser className="input-icon" />
-              <input
-                type="text"
-                id="fullName"
-                name="fullName"
-                placeholder="Enter your full name"
-                value={formData.fullName}
-                onChange={handleChange}
-              />
-            </div>
-            {errors.fullName && <span className="error-message">{errors.fullName}</span>}
-          </div>
-          
-          <div className="input-group">
             <label htmlFor="email">Email Address</label>
             <div className="input-with-icon">
               <FaEnvelope className="input-icon" />
@@ -175,37 +176,6 @@ const Register: React.FC = () => {
           </div>
           
           <div className="input-group">
-            <label htmlFor="phone">Phone Number</label>
-            <div className="input-with-icon">
-              <FaPhone className="input-icon" />
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                placeholder="Enter your phone number"
-                value={formData.phone}
-                onChange={handleChange}
-              />
-            </div>
-            {errors.phone && <span className="error-message">{errors.phone}</span>}
-          </div>
-          
-          <div className="input-group">
-            <label htmlFor="companyName">Company Name (Optional)</label>
-            <div className="input-with-icon">
-              <FaBuilding className="input-icon" />
-              <input
-                type="text"
-                id="companyName"
-                name="companyName"
-                placeholder="Enter your company name"
-                value={formData.companyName}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-          
-          <div className="input-group">
             <label htmlFor="username">Username</label>
             <div className="input-with-icon">
               <FaUser className="input-icon" />
@@ -219,6 +189,55 @@ const Register: React.FC = () => {
               />
             </div>
             {errors.username && <span className="error-message">{errors.username}</span>}
+          </div>
+          
+          <div className="input-group">
+            <label htmlFor="first_name">First Name</label>
+            <div className="input-with-icon">
+              <FaUser className="input-icon" />
+              <input
+                type="text"
+                id="first_name"
+                name="first_name"
+                placeholder="Enter your first name"
+                value={formData.first_name}
+                onChange={handleChange}
+              />
+            </div>
+            {errors.first_name && <span className="error-message">{errors.first_name}</span>}
+          </div>
+          
+          <div className="input-group">
+            <label htmlFor="last_name">Last Name</label>
+            <div className="input-with-icon">
+              <FaUser className="input-icon" />
+              <input
+                type="text"
+                id="last_name"
+                name="last_name"
+                placeholder="Enter your last name"
+                value={formData.last_name}
+                onChange={handleChange}
+              />
+            </div>
+            {errors.last_name && <span className="error-message">{errors.last_name}</span>}
+          </div>
+          
+          {/* Role is set to 'User' by default */}
+          
+          <div className="input-group">
+            <label htmlFor="avatar_url">Avatar URL (Optional)</label>
+            <div className="input-with-icon">
+              <FaImage className="input-icon" />
+              <input
+                type="text"
+                id="avatar_url"
+                name="avatar_url"
+                placeholder="Enter avatar URL"
+                value={formData.avatar_url}
+                onChange={handleChange}
+              />
+            </div>
           </div>
           
           <div className="input-group">

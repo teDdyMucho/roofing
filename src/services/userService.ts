@@ -34,6 +34,7 @@ export interface TeamMember {
 interface ServiceResponse<T> {
   data: T | null;
   error: PostgrestError | Error | null;
+  success: boolean;
 }
 
 /**
@@ -43,13 +44,22 @@ export const userService = {
   // Get user by ID
   async getUserById(userId: string): Promise<User | null> {
     try {
+      if (!userId) {
+        console.error('getUserById called with invalid userId');
+        return null;
+      }
+      
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error(`Error fetching user with ID ${userId}:`, error);
+        throw error;
+      }
+      
       return data as User;
     } catch (error) {
       console.error('Error fetching user:', error);
@@ -77,16 +87,30 @@ export const userService = {
   // Create a new user
   async createUser(user: Partial<User>): Promise<User | null> {
     try {
+      console.log('Attempting to create user in database:', user);
+      
       const { data, error } = await supabase
         .from('users')
         .insert([user])
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Database error creating user:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        console.error('Error details:', error.details);
+        throw error;
+      }
+      
+      console.log('User successfully created in database:', data);
       return data as User;
     } catch (error) {
       console.error('Error creating user:', error);
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
       return null;
     }
   },
@@ -112,14 +136,24 @@ export const userService = {
   // Update user's last sign in time
   async updateLastSignIn(userId: string): Promise<User | null> {
     try {
+      if (!userId) {
+        console.error('updateLastSignIn called with invalid userId');
+        return null;
+      }
+      
+      const timestamp = new Date().toISOString();
       const { data, error } = await supabase
         .from('users')
-        .update({ last_sign_in: new Date().toISOString() })
+        .update({ last_sign_in: timestamp })
         .eq('id', userId)
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error(`Error updating last sign in for user ${userId}:`, error);
+        throw error;
+      }
+      
       return data as User;
     } catch (error) {
       console.error('Error updating last sign in:', error);

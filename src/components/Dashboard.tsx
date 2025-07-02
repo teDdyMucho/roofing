@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaHome, FaClipboardList, FaCalendarAlt, FaUsers, FaFileInvoiceDollar, FaChartLine, FaCog, FaSignOutAlt, FaBell, FaSearch, FaRobot } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
+import { User as AppUser } from '../services/userService';
 import ProjectTeamPanel from './ProjectTeamPanel';
 import ProjectsList from './ProjectsList';
 import '../styles/Dashboard.css';
@@ -44,10 +45,23 @@ const Dashboard: React.FC = () => {
   const { logout, currentUser } = useAuth();
   
   const handleLogout = () => {
-    // Use the logout function from AuthContext
-    logout();
-    // Navigate to login page
-    navigate('/login');
+    try {
+      console.log('Dashboard: Initiating logout');
+      // Start the logout process but don't wait for it
+      logout().then(() => {
+        console.log('Dashboard: Logout successful, navigating to landing page');
+        // Navigate to landing page after logout completes
+        navigate('/', { replace: true });
+      }).catch(error => {
+        console.error('Dashboard: Logout failed, still navigating to landing page', error);
+        // Even if logout fails, still navigate to landing page
+        navigate('/', { replace: true });
+      });
+    } catch (error) {
+      console.error('Dashboard: Error in handleLogout', error);
+      // If anything goes wrong, still try to navigate away
+      navigate('/', { replace: true });
+    }
   };
 
   const handleUserProfileClick = () => {
@@ -55,7 +69,7 @@ const Dashboard: React.FC = () => {
     navigate('/user-settings');
   };
 
-  // State for AI chat interfaces
+  // State for AI chat interfaces - using useCallback for memoization
   const [estimatingAiMessage, setEstimatingAiMessage] = useState('');
   const [adminAiMessage, setAdminAiMessage] = useState('');
   const [estimatingAiChat, setEstimatingAiChat] = useState([
@@ -65,12 +79,12 @@ const Dashboard: React.FC = () => {
     { sender: 'ai', message: 'Welcome! I\'m your Admin AI assistant. I can help with scheduling, customer management, and business analytics.' }
   ]);
 
-  const handleSendMessage = (aiType: string) => {
+  const handleSendMessage = React.useCallback((aiType: string) => {
     if (aiType === 'estimating') {
       if (estimatingAiMessage.trim() === '') return;
       
       // Add user message to chat
-      setEstimatingAiChat([...estimatingAiChat, { sender: 'user', message: estimatingAiMessage }]);
+      setEstimatingAiChat(prev => [...prev, { sender: 'user', message: estimatingAiMessage }]);
       
       // Clear input field
       setEstimatingAiMessage('');
@@ -89,7 +103,7 @@ const Dashboard: React.FC = () => {
       if (adminAiMessage.trim() === '') return;
       
       // Add user message to chat
-      setAdminAiChat([...adminAiChat, { sender: 'user', message: adminAiMessage }]);
+      setAdminAiChat(prev => [...prev, { sender: 'user', message: adminAiMessage }]);
       
       // Clear input field
       setAdminAiMessage('');
@@ -105,7 +119,7 @@ const Dashboard: React.FC = () => {
         ]);
       }, 1000);
     }
-  };
+  }, [estimatingAiMessage, adminAiMessage]);
   
   return (
     <div className="dashboard-container">

@@ -13,33 +13,32 @@ import UserSettings from './components/UserSettings';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 /**
- * Protected route component - modified to always allow access while keeping auth functionality
+ * Protected route component - ensures user is authenticated before allowing access
  */
 const ProtectedRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
-  const { loading } = useAuth();
-  
-  if (loading) {
-    return <div className="loading">Loading...</div>;
-  }
-  
-  // Always allow access to the protected route
-  return element;
-};
-
-// AppContent component to prevent rendering Landing and Dashboard simultaneously
-const AppContent = () => {
+  const { isAuthenticated } = useAuth();
   const location = useLocation();
   
-  // Only render the Landing component on the home route
-  const renderLanding = location.pathname === '/';
+  // Redirect to login if not authenticated, otherwise render the element
+  return isAuthenticated ? element : <Navigate to="/login" state={{ from: location }} replace />;
+};
+
+// AppContent component with optimized routing logic
+const AppContent = () => {
+  const location = useLocation();
+  const { isAuthenticated } = useAuth();
+  
+  // Only render the Landing component on the home route for non-authenticated users
+  const renderLanding = location.pathname === '/' && !isAuthenticated;
   
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
+      <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />} />
+      <Route path="/dashboard" element={<ProtectedRoute element={<Dashboard />} />} />
       <Route path="/user-settings" element={<ProtectedRoute element={<UserSettings />} />} />
-      <Route path="/" element={renderLanding ? <Landing /> : <Navigate to="/dashboard" />} />
+      <Route path="/" element={renderLanding ? <Landing /> : <Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };
