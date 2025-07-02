@@ -6,7 +6,8 @@ import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FaHome, FaChartLine, FaCog, FaSignOutAlt,
-  FaBell, FaSearch, FaRobot, FaPlus
+  FaBell, FaSearch, FaRobot, FaPlus, FaClipboardList,
+  FaCalendarAlt, FaUsers, FaFileInvoiceDollar
 } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { User as AppUser } from '../services/userService';
@@ -187,6 +188,18 @@ const Dashboard: React.FC = () => {
           <ul>
             <li className={activeTab === 'overview' ? 'active' : ''} onClick={() => setActiveTab('overview')}>
               <FaChartLine /> <span>Overview</span>
+            </li>
+            <li className={activeTab === 'projects' ? 'active' : ''} onClick={() => setActiveTab('projects')}>
+              <FaClipboardList /> <span>Projects</span>
+            </li>
+            <li className={activeTab === 'calendar' ? 'active' : ''} onClick={() => setActiveTab('calendar')}>
+              <FaCalendarAlt /> <span>Calendar</span>
+            </li>
+            <li className={activeTab === 'clients' ? 'active' : ''} onClick={() => setActiveTab('clients')}>
+              <FaUsers /> <span>Clients</span>
+            </li>
+            <li className={activeTab === 'invoices' ? 'active' : ''} onClick={() => setActiveTab('invoices')}>
+              <FaFileInvoiceDollar /> <span>Invoices</span>
             </li>
             <li className={activeTab === 'ai' || activeTab.startsWith('ai-') ? 'active' : ''} onClick={() => setShowAiMenu(!showAiMenu)}>
               <div className="menu-item-container">

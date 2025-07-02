@@ -8,6 +8,7 @@ import Register from './components/Register';
 import Landing from './components/Landing';
 import Dashboard from './components/Dashboard';
 import UserSettings from './components/UserSettings';
+import UserRoleSelection from './components/UserRoleSelection';
 
 // Context imports
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -33,11 +34,20 @@ const AppContent = () => {
   const location = useLocation();
   const { isAuthenticated } = useAuth();
   
-  // Only render the Landing component on the home route for non-authenticated users
-  const renderLanding = location.pathname === '/' && !isAuthenticated;
-  
   return (
     <Routes>
+      {/* Initial role selection screen */}
+      <Route 
+        path="/" 
+        element={<UserRoleSelection />} 
+      />
+      
+      {/* Employee landing page */}
+      <Route 
+        path="/landing" 
+        element={<Landing />} 
+      />
+      
       {/* Public routes - redirect to dashboard if already authenticated */}
       <Route 
         path="/login" 
@@ -56,12 +66,6 @@ const AppContent = () => {
       <Route 
         path="/user-settings" 
         element={<ProtectedRoute element={<UserSettings />} />} 
-      />
-      
-      {/* Landing page - show landing for guests, dashboard for authenticated users */}
-      <Route 
-        path="/" 
-        element={renderLanding ? <Landing /> : <Navigate to="/dashboard" replace />} 
       />
       
       {/* Catch all - redirect to home */}
