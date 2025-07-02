@@ -1,23 +1,47 @@
+/**
+ * Login Component
+ * Handles user authentication and login process
+ */
 import React, { useState, useEffect } from 'react';
 import { FaUser, FaLock, FaHome, FaEnvelope } from 'react-icons/fa';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/Login.css';
 
+/**
+ * Interface for login form data
+ */
 interface LoginFormData {
+  /** User's email address */
   email: string;
+  /** User's password */
   password: string;
+  /** Whether to remember the user's login */
   rememberMe: boolean;
 }
 
+/**
+ * Login component for user authentication
+ */
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const { login, isAuthenticated } = useAuth();
+  
+  // Form state
   const [loginData, setLoginData] = useState<LoginFormData>({
     email: '',
     password: '',
     rememberMe: false
   });
+  
+  // UI state
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
+  /**
+   * Handle form input changes
+   */
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setLoginData({
@@ -25,14 +49,11 @@ const Login: React.FC = () => {
       [name]: type === 'checkbox' ? checked : value
     });
   };
-
-  const { login, isAuthenticated, loading } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-  const [loginSuccess, setLoginSuccess] = useState(false);
   
-  // Single effect to handle redirection when authenticated
+  /**
+   * Effect to handle redirection when authenticated
+   * Redirects to dashboard when user is authenticated
+   */
   useEffect(() => {
     if (isAuthenticated) {
       console.log('User is authenticated, redirecting to dashboard');
@@ -43,6 +64,7 @@ const Login: React.FC = () => {
   /**
    * Handles the login form submission
    * Attempts to authenticate the user and manages redirection on success
+   * @param e - Form event
    */
   const handleLoginSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -74,11 +96,15 @@ const Login: React.FC = () => {
     } catch (err) {
       // Handle exceptions
       setError('An error occurred during login. Please try again.');
+      console.error('Login error:', err);
     } finally {
       setIsLoading(false);
     }
   };
   
+  /**
+   * Navigate to the registration page
+   */
   const redirectToRegister = () => {
     navigate('/register');
   };

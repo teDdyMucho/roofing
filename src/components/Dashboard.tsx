@@ -1,18 +1,35 @@
-import React, { useState } from 'react';
+/**
+ * Dashboard Component
+ * Main interface for authenticated users providing access to all app features
+ */
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaHome, FaClipboardList, FaCalendarAlt, FaUsers, FaFileInvoiceDollar, FaChartLine, FaCog, FaSignOutAlt, FaBell, FaSearch, FaRobot } from 'react-icons/fa';
+import {
+  FaHome, FaChartLine, FaCog, FaSignOutAlt,
+  FaBell, FaSearch, FaRobot, FaPlus
+} from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { User as AppUser } from '../services/userService';
 import ProjectTeamPanel from './ProjectTeamPanel';
 import ProjectsList from './ProjectsList';
 import '../styles/Dashboard.css';
 
+/**
+ * Dashboard component for the main user interface after authentication
+ */
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { logout, currentUser } = useAuth();
+  
+  // UI state
   const [activeTab, setActiveTab] = useState('overview');
   const [showAiMenu, setShowAiMenu] = useState(false);
   
-  // Mock data for dashboard
+  // ========== MOCK DATA ==========
+  /**
+   * Recent projects data
+   * In a production app, this would come from an API call
+   */
   const recentProjects = [
     { id: 1, client: 'Johnson Residence', address: '123 Oak St', status: 'In Progress', date: '2025-06-25', value: '$12,500' },
     { id: 2, client: 'Smith Commercial', address: '456 Pine Ave', status: 'Scheduled', date: '2025-07-05', value: '$28,750' },
@@ -20,19 +37,27 @@ const Dashboard: React.FC = () => {
     { id: 4, client: 'Downtown Office', address: '101 Main St', status: 'Estimate', date: '2025-07-10', value: '$34,200' }
   ];
   
+  /**
+   * Upcoming appointments data
+   */
   const upcomingAppointments = [
     { id: 1, client: 'Thompson Residence', address: '234 Elm St', type: 'Inspection', date: '2025-07-01', time: '10:00 AM' },
     { id: 2, client: 'Wilson Property', address: '567 Cedar Ln', type: 'Estimate', date: '2025-07-02', time: '1:30 PM' },
     { id: 3, client: 'Martinez Home', address: '890 Birch Ave', type: 'Repair', date: '2025-07-03', time: '9:00 AM' }
   ];
   
+  /**
+   * Notification data
+   */
   const notifications = [
     { id: 1, message: 'New estimate request from Lee Residence', time: '2 hours ago' },
     { id: 2, message: 'Material delivery scheduled for Smith project', time: '5 hours ago' },
     { id: 3, message: 'Weather alert: Rain expected tomorrow', time: '1 day ago' }
   ];
   
-  // Mock data for team members working on projects
+  /**
+   * Team members data
+   */
   const teamMembers = [
     { id: '1', name: 'Sarah Johnson', role: 'Project Manager', status: 'online' as const },
     { id: '2', name: 'Michael Chen', role: 'Roofing Specialist', status: 'online' as const },
@@ -42,21 +67,26 @@ const Dashboard: React.FC = () => {
     { id: '6', name: 'Jessica Martinez', role: 'Admin Assistant', status: 'online' as const }
   ];
   
-  const { logout, currentUser } = useAuth();
-  
+  /**
+   * Handle user logout
+   * Attempts to log out the user and navigates to landing page regardless of success/failure
+   */
   const handleLogout = () => {
     try {
       console.log('Dashboard: Initiating logout');
+      
       // Start the logout process but don't wait for it
-      logout().then(() => {
-        console.log('Dashboard: Logout successful, navigating to landing page');
-        // Navigate to landing page after logout completes
-        navigate('/', { replace: true });
-      }).catch(error => {
-        console.error('Dashboard: Logout failed, still navigating to landing page', error);
-        // Even if logout fails, still navigate to landing page
-        navigate('/', { replace: true });
-      });
+      logout()
+        .then(() => {
+          console.log('Dashboard: Logout successful, navigating to landing page');
+          // Navigate to landing page after logout completes
+          navigate('/', { replace: true });
+        })
+        .catch(error => {
+          console.error('Dashboard: Logout failed, still navigating to landing page', error);
+          // Even if logout fails, still navigate to landing page
+          navigate('/', { replace: true });
+        });
     } catch (error) {
       console.error('Dashboard: Error in handleLogout', error);
       // If anything goes wrong, still try to navigate away
@@ -64,27 +94,48 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  /**
+   * Navigate to user settings page
+   */
   const handleUserProfileClick = () => {
-    // Navigate to user settings page
     navigate('/user-settings');
   };
 
-  // State for AI chat interfaces - using useCallback for memoization
+  // ========== AI ASSISTANT FEATURE ==========
+  /**
+   * AI chat interface state
+   */
   const [estimatingAiMessage, setEstimatingAiMessage] = useState('');
   const [adminAiMessage, setAdminAiMessage] = useState('');
+  
+  // Initial AI chat messages
   const [estimatingAiChat, setEstimatingAiChat] = useState([
-    { sender: 'ai', message: 'Hello! I\'m your Estimating AI assistant. How can I help you create roofing estimates today?' }
+    { 
+      sender: 'ai', 
+      message: 'Hello! I\'m your Estimating AI assistant. How can I help you create roofing estimates today?' 
+    }
   ]);
+  
   const [adminAiChat, setAdminAiChat] = useState([
-    { sender: 'ai', message: 'Welcome! I\'m your Admin AI assistant. I can help with scheduling, customer management, and business analytics.' }
+    { 
+      sender: 'ai', 
+      message: 'Welcome! I\'m your Admin AI assistant. I can help with scheduling, customer management, and business analytics.' 
+    }
   ]);
 
-  const handleSendMessage = React.useCallback((aiType: string) => {
+  /**
+   * Handle sending messages to AI assistants
+   * @param aiType - The type of AI assistant ('estimating' or 'admin')
+   */
+  const handleSendMessage = useCallback((aiType: string) => {
     if (aiType === 'estimating') {
       if (estimatingAiMessage.trim() === '') return;
       
       // Add user message to chat
-      setEstimatingAiChat(prev => [...prev, { sender: 'user', message: estimatingAiMessage }]);
+      setEstimatingAiChat(prev => [...prev, { 
+        sender: 'user', 
+        message: estimatingAiMessage 
+      }]);
       
       // Clear input field
       setEstimatingAiMessage('');
@@ -103,7 +154,10 @@ const Dashboard: React.FC = () => {
       if (adminAiMessage.trim() === '') return;
       
       // Add user message to chat
-      setAdminAiChat(prev => [...prev, { sender: 'user', message: adminAiMessage }]);
+      setAdminAiChat(prev => [...prev, { 
+        sender: 'user', 
+        message: adminAiMessage 
+      }]);
       
       // Clear input field
       setAdminAiMessage('');
@@ -133,18 +187,6 @@ const Dashboard: React.FC = () => {
           <ul>
             <li className={activeTab === 'overview' ? 'active' : ''} onClick={() => setActiveTab('overview')}>
               <FaChartLine /> <span>Overview</span>
-            </li>
-            <li className={activeTab === 'projects' ? 'active' : ''} onClick={() => setActiveTab('projects')}>
-              <FaClipboardList /> <span>Projects</span>
-            </li>
-            <li className={activeTab === 'calendar' ? 'active' : ''} onClick={() => setActiveTab('calendar')}>
-              <FaCalendarAlt /> <span>Calendar</span>
-            </li>
-            <li className={activeTab === 'clients' ? 'active' : ''} onClick={() => setActiveTab('clients')}>
-              <FaUsers /> <span>Clients</span>
-            </li>
-            <li className={activeTab === 'invoices' ? 'active' : ''} onClick={() => setActiveTab('invoices')}>
-              <FaFileInvoiceDollar /> <span>Invoices</span>
             </li>
             <li className={activeTab === 'ai' || activeTab.startsWith('ai-') ? 'active' : ''} onClick={() => setShowAiMenu(!showAiMenu)}>
               <div className="menu-item-container">
@@ -375,38 +417,154 @@ const Dashboard: React.FC = () => {
               <h1>Admin AI Assistant</h1>
               
               <div className="admin-content-wrapper">
-                {/* Left side: AI Chat */}
-                <div className="admin-chat-section">
-                  <div className="ai-description">
-                    <p>Your virtual administrator for scheduling, customer management, and business analytics.</p>
+                {/* Left side: Projects Navigation */}
+                <div className="admin-projects-sidebar">
+                  <div className="projects-sidebar-header">
+                    <h3>Ongoing Projects</h3>
+                    <button className="new-project-btn"><FaPlus /> New</button>
                   </div>
                   
-                  <div className="chat-messages">
-                    {adminAiChat.map((chat, index) => (
-                      <div key={index} className={`message ${chat.sender}`}>
-                        {chat.sender === 'ai' && <div className="ai-avatar"><FaRobot /></div>}
-                        <div className="message-content">{chat.message}</div>
+                  <div className="projects-list-sidebar">
+                    {recentProjects.map((project) => (
+                      <div 
+                        key={project.id} 
+                        className={`project-item ${project.id === 1 ? 'active' : ''}`}
+                        onClick={() => console.log(`Selected project ${project.id}`)}
+                      >
+                        <div className="project-item-header">
+                          <h4>{project.client}</h4>
+                          <span className={`status-badge ${project.status.toLowerCase().replace(' ', '-')}`}>
+                            {project.status}
+                          </span>
+                        </div>
+                        <p className="project-address">{project.address}</p>
+                        <p className="project-value">{project.value}</p>
                       </div>
                     ))}
                   </div>
-                  
-                  <div className="chat-input">
-                    <input 
-                      type="text" 
-                      placeholder="Ask about scheduling, customer data, or business analytics..." 
-                      value={adminAiMessage}
-                      onChange={(e) => setAdminAiMessage(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage('admin')}
-                    />
-                    <button onClick={() => handleSendMessage('admin')}>
-                      Send
-                    </button>
-                  </div>
                 </div>
                 
-                {/* Right side: Projects List with Chat */}
-                <div className="admin-projects-panel">
-                  <ProjectsList />
+                {/* Right side: Combined Project Details and Chat */}
+                <div className="project-combined-panel">
+                  <div className="project-details-section">
+                    <div className="project-details-header">
+                      <button className="back-button">
+                        <span>← Back to Projects</span>
+                      </button>
+                      <h2>Johnson Residence Roof Replacement</h2>
+                      <span className="status-badge in-progress">In Progress</span>
+                    </div>
+                    
+                    <div className="project-info-section">
+                      <div className="info-group">
+                        <h4>Client:</h4>
+                        <p>Robert Johnson</p>
+                      </div>
+                      
+                      <div className="info-group">
+                        <h4>Address:</h4>
+                        <p>123 Oak Street, Springfield, IL</p>
+                      </div>
+                      
+                      <div className="info-group">
+                        <h4>Timeline:</h4>
+                        <p>Jun 15, 2025 - Jul 10, 2025</p>
+                      </div>
+                      
+                      <div className="info-group">
+                        <h4>Value:</h4>
+                        <p>$12,500</p>
+                      </div>
+                      
+                      <div className="info-group">
+                        <h4>Progress:</h4>
+                        <div className="progress-bar-container">
+                          <div className="progress-bar" style={{ width: '60%' }}></div>
+                          <span>60% Complete</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="project-chat-section">
+                    <div className="chat-panel-header">
+                      <h3>Johnson Residence Roof Replacement - Project Chat</h3>
+                    </div>
+                    
+                    <div className="project-chat-messages">
+                      <div className="chat-day-divider">Today</div>
+                      
+                      <div className="project-message">
+                        <div className="message-avatar">SJ</div>
+                        <div className="message-content-wrapper">
+                          <div className="message-header">
+                            <span className="message-sender">Sarah Johnson</span>
+                            <span className="message-role">Project Manager</span>
+                            <span className="message-time">08:30 AM</span>
+                          </div>
+                          <div className="message-body">
+                            Good morning team! Just wanted to check in on the progress for the shingle installation.
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="project-message">
+                        <div className="message-avatar">MC</div>
+                        <div className="message-content-wrapper">
+                          <div className="message-header">
+                            <span className="message-sender">Michael Chen</span>
+                            <span className="message-role">Roofing Specialist</span>
+                            <span className="message-time">08:45 AM</span>
+                          </div>
+                          <div className="message-body">
+                            We've completed about 60% of the shingle installation. Should be done by tomorrow afternoon if weather permits.
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="project-message">
+                        <div className="message-avatar">DR</div>
+                        <div className="message-content-wrapper">
+                          <div className="message-header">
+                            <span className="message-sender">David Rodriguez</span>
+                            <span className="message-role">Estimator</span>
+                            <span className="message-time">09:15 AM</span>
+                          </div>
+                          <div className="message-body">
+                            The client called asking about adding gutter guards. I've prepared an additional estimate for that work.
+                            <div className="message-attachment">
+                              <span className="attachment-icon">📄</span>
+                              <span className="attachment-name">Gutter Guard Estimate.pdf</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="project-chat-input">
+                      <input 
+                        type="text" 
+                        placeholder="Type a message..." 
+                        value={adminAiMessage}
+                        onChange={(e) => setAdminAiMessage(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage('admin')}
+                      />
+                      <button className="upload-photo-btn" title="Upload Photo">
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          id="photo-upload" 
+                          style={{ display: 'none' }} 
+                          onChange={(e) => console.log('Photo selected:', e.target.files?.[0]?.name)}
+                        />
+                        <label htmlFor="photo-upload">📷</label>
+                      </button>
+                      <button className="attach-btn" title="Attach File">📎</button>
+                      <button className="send-btn" onClick={() => handleSendMessage('admin')}>
+                        Send
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

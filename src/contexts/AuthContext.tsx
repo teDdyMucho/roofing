@@ -1,19 +1,42 @@
+/**
+ * Authentication Context
+ * Provides authentication state and methods throughout the application
+ */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { userService, User as AppUser } from '../services/userService';
 
+/**
+ * Authentication Context Type Definition
+ */
 interface AuthContextType {
+  /** Current authenticated user or null if not authenticated */
   currentUser: AppUser | null;
+  
+  /** Whether a user is currently authenticated */
   isAuthenticated: boolean;
+  
+  /** Login with email and password */
   login: (email: string, password: string) => Promise<boolean>;
+  
+  /** Register a new user */
   signup: (email: string, password: string, username: string, firstName: string, lastName: string, role?: string) => Promise<boolean>;
+  
+  /** Log out the current user */
   logout: () => Promise<void>;
+  
+  /** Whether authentication is in progress */
   loading: boolean;
+  
+  /** Update the current user's profile */
   updateUserProfile: (updates: Partial<AppUser>) => Promise<AppUser | null>;
 }
 
-// Create a default context value to avoid undefined errors
+/**
+ * Default context value to avoid undefined errors
+ * This ensures components can safely use the context even before the provider is initialized
+ */
 const defaultAuthContext: AuthContextType = {
   currentUser: null,
   isAuthenticated: false,
@@ -24,20 +47,33 @@ const defaultAuthContext: AuthContextType = {
   updateUserProfile: async () => null
 };
 
+/** The Authentication Context */
 const AuthContext = createContext<AuthContextType>(defaultAuthContext);
 
+/**
+ * Custom hook to access the authentication context
+ * @returns The authentication context value
+ */
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   // Context will never be undefined now because we provided a default value
   return context;
 };
 
+/** Props for the AuthProvider component */
 interface AuthProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Authentication Provider Component
+ * Manages authentication state and provides auth methods to the application
+ */
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  // State for the current authenticated user
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
+  
+  // Loading state for authentication operations
   const [loading, setLoading] = useState(true);
 
   // Check if user is already logged in on mount and set up auth listener

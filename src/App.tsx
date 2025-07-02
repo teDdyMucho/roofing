@@ -14,16 +14,21 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 /**
  * Protected route component - ensures user is authenticated before allowing access
+ * Redirects to login if user is not authenticated
  */
 const ProtectedRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
   
-  // Redirect to login if not authenticated, otherwise render the element
-  return isAuthenticated ? element : <Navigate to="/login" state={{ from: location }} replace />;
+  return isAuthenticated ? 
+    element : 
+    <Navigate to="/login" state={{ from: location }} replace />;
 };
 
-// AppContent component with optimized routing logic
+/**
+ * AppContent component with optimized routing logic
+ * Handles all routes and their access control
+ */
 const AppContent = () => {
   const location = useLocation();
   const { isAuthenticated } = useAuth();
@@ -33,16 +38,45 @@ const AppContent = () => {
   
   return (
     <Routes>
-      <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
-      <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />} />
-      <Route path="/dashboard" element={<ProtectedRoute element={<Dashboard />} />} />
-      <Route path="/user-settings" element={<ProtectedRoute element={<UserSettings />} />} />
-      <Route path="/" element={renderLanding ? <Landing /> : <Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* Public routes - redirect to dashboard if already authenticated */}
+      <Route 
+        path="/login" 
+        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} 
+      />
+      <Route 
+        path="/register" 
+        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />} 
+      />
+      
+      {/* Protected routes - require authentication */}
+      <Route 
+        path="/dashboard" 
+        element={<ProtectedRoute element={<Dashboard />} />} 
+      />
+      <Route 
+        path="/user-settings" 
+        element={<ProtectedRoute element={<UserSettings />} />} 
+      />
+      
+      {/* Landing page - show landing for guests, dashboard for authenticated users */}
+      <Route 
+        path="/" 
+        element={renderLanding ? <Landing /> : <Navigate to="/dashboard" replace />} 
+      />
+      
+      {/* Catch all - redirect to home */}
+      <Route 
+        path="*" 
+        element={<Navigate to="/" replace />} 
+      />
     </Routes>
   );
 };
 
+/**
+ * Main App component
+ * Sets up the authentication provider and router
+ */
 function App() {
   return (
     <div className="App">
