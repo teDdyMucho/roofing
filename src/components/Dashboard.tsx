@@ -506,10 +506,6 @@ const Dashboard: React.FC = () => {
       <main className="main-content">
         {/* Top Header */}
         <header className="dashboard-header">
-          <div className="search-bar">
-            <FaSearch />
-            <input type="text" placeholder="Search projects, clients..." />
-          </div>
           <div className="header-actions">
             <div className="notifications">
               <FaBell />
@@ -703,58 +699,48 @@ const Dashboard: React.FC = () => {
                   {selectedProjectId ? (
                   <>
                   <div className="project-details-section">
-                    <div className="project-details-header">
-                      <button className="back-button" onClick={handleBackToProjects}>
-                        <span>← Back to Projects</span>
-                      </button>
-                      <h2>{projects.find(project => project.id === selectedProjectId)?.name}</h2>
-                      <span className="status-badge in-progress">In Progress</span>
-                    </div>
-                    
-                    <div className="project-info-section">
-                      <div className="info-group">
-                        <h4>Client:</h4>
-                        <p>{projects.find(project => project.id === selectedProjectId)?.client}</p>
+                    <div className="horizontal-layout">
+                      <div className="project-title-area">
+                        <h2>{projects.find(project => project.id === selectedProjectId)?.name}</h2>
+                        <span className="status-badge in-progress">In Progress</span>
                       </div>
                       
-                      <div className="info-group">
-                        <h4>Address:</h4>
-                        <p>{projects.find(project => project.id === selectedProjectId)?.address}</p>
-                      </div>
+                      <div className="project-details-divider"></div>
                       
-                      <div className="info-group">
-                        <h4>Timeline:</h4>
-                        {selectedProjectId && (
-                          <p>{formatTimeline(
-                            projects.find(project => project.id === selectedProjectId)?.start_date || null,
-                            projects.find(project => project.id === selectedProjectId)?.end_date || null
-                          )}</p>
-                        )}
-                      </div>
-                      
-                      <div className="info-group">
-                        <h4>Value:</h4>
-                        {selectedProjectId && (
-                          <p>{formatCurrency(
-                            projects.find(project => project.id === selectedProjectId)?.value || null
-                          )}</p>
-                        )}
-                      </div>
-                      
-                      <div className="info-group">
-                        <h4>Progress:</h4>
-                        <div className="progress-bar-container">
-                          <div className="progress-bar" style={{ width: '60%' }}></div>
-                          <span>60% Complete</span>
+                      <div className="project-info-grid">
+                        <div className="info-group">
+                          <h4>Client:</h4>
+                          <p>{projects.find(project => project.id === selectedProjectId)?.client}</p>
+                        </div>
+                        
+                        <div className="info-group">
+                          <h4>Address:</h4>
+                          <p>{projects.find(project => project.id === selectedProjectId)?.address}</p>
+                        </div>
+                        
+                        <div className="info-group">
+                          <h4>Timeline:</h4>
+                          {selectedProjectId && (
+                            <p>{formatTimeline(
+                              projects.find(project => project.id === selectedProjectId)?.start_date || null,
+                              projects.find(project => project.id === selectedProjectId)?.end_date || null
+                            )}</p>
+                          )}
+                        </div>
+                        
+                        <div className="info-group">
+                          <h4>Value:</h4>
+                          {selectedProjectId && (
+                            <p>{formatCurrency(
+                              projects.find(project => project.id === selectedProjectId)?.value || null
+                            )}</p>
+                          )}
                         </div>
                       </div>
                     </div>
                   </div>
                   
                   <div className="project-chat-section">
-                    <div className="chat-panel-header">
-                      <h3>{projects.find(project => project.id === selectedProjectId)?.name} - Project Chat</h3>
-                    </div>
                     
                     <div className="project-chat-messages">
                       {projectMessages.length === 0 ? (
@@ -788,6 +774,7 @@ const Dashboard: React.FC = () => {
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         disabled={isSendingMessage}
+                        className="chat-input"
                       />
                       <button className="upload-photo-btn" title="Upload Photo">
                         <input 
@@ -800,8 +787,8 @@ const Dashboard: React.FC = () => {
                         <label htmlFor="project-photo-upload">📷</label>
                       </button>
                       <button className="attach-btn" title="Attach File">📎</button>
-                      <button type="submit" className="send-btn" disabled={isSendingMessage || !newMessage.trim()}>
-                        {isSendingMessage ? 'Sending...' : 'Send'}
+                      <button type="submit" className="send-btn" disabled={isSendingMessage || !newMessage.trim()} title="Press Enter to send">
+                        {isSendingMessage ? 'Sending...' : 'Enter ↵'}
                       </button>
                     </form>
                   </div>
