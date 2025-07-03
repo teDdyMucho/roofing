@@ -9,9 +9,15 @@ import Landing from './components/Landing';
 import Dashboard from './components/Dashboard';
 import UserSettings from './components/UserSettings';
 import UserRoleSelection from './components/UserRoleSelection';
+import FlashCoHome from './components/FlashCo/FlashCoHome';
+import ProductList from './components/FlashCo/ProductList/ProductList';
+import ProductGrid from './components/FlashCo/ProductGrid/ProductGrid';
+import ProductDetail from './components/FlashCo/ProductDetail';
+import CategoryPage from './components/FlashCo/CategoryPage';
 
 // Context imports
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { sampleProducts } from './data/products';
 
 /**
  * Protected route component - ensures user is authenticated before allowing access
@@ -67,6 +73,12 @@ const AppContent = () => {
         path="/user-settings" 
         element={<ProtectedRoute element={<UserSettings />} />} 
       />
+
+      <Route path="/flashco" element={<FlashCoHome />} />
+      <Route path="/product/:id" element={<ProductDetail />} />
+      <Route path="/category/:slug" element={<CategoryPage />} />
+      <Route path="/products" element={<ProductList products={sampleProducts} />} />
+      <Route path="/product-grid" element={<ProductGrid products={sampleProducts} />} />
       
       {/* Catch all - redirect to home */}
       <Route 

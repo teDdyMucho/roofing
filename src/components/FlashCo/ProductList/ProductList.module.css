@@ -1,0 +1,164 @@
+.productListContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.heroSection {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding: 2rem 0;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.heroSection h1 {
+  font-size: 2.5rem;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.heroSection p {
+  font-size: 1.1rem;
+  color: #555;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.productsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.productCard {
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.productCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.productImage {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.productInfo {
+  padding: 1.5rem;
+}
+
+.productTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.productDescription {
+  color: #666;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.productPrice {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #3498db;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.ctaButton {
+  display: inline-block;
+  background: #3498db;
+  color: white;
+  padding: 0.7rem 1.5rem;
+  border-radius: 5px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+}
+
+.ctaButton:hover {
+  background: #2980b9;
+}
+
+.locationSection {
+  margin-top: 4rem;
+  text-align: center;
+  padding: 2rem 0;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+}
+
+.locationSection h2 {
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+}
+
+.mapContainer {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.mapImage {
+  width: 100%;
+  height: auto;
+  border-radius: 5px;
+}
+
+.locationList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+  text-align: left;
+  padding: 0 1rem;
+}
+
+.locationItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #555;
+}
+
+.locationMarker {
+  color: #e74c3c;
+  font-size: 1.2rem;
+}
+
+@media (max-width: 768px) {
+  .productsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+  
+  .locationList {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .locationList {
+    grid-template-columns: 1fr;
+  }
+}
