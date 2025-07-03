@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { FiGrid, FiList, FiX, FiFilter, FiChevronDown, FiChevronUp, FiHeart, FiSearch } from 'react-icons/fi';
 import { featuredProducts } from '../../Hero/Hero';
 import ProductCard from '../ProductCard/ProductCard';
@@ -28,13 +28,19 @@ const filterOptions = {
 
 const CategoryPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const queryParams = new URLSearchParams(location.search);
+  const viewParam = queryParams.get('view');
+  const sortParam = queryParams.get('sort');
+  
   const categoryName = productCategories[slug as keyof typeof productCategories] || 'All Products';
   
   // State for products and filters
   const [products, setProducts] = useState(featuredProducts);
   const [filteredProducts, setFilteredProducts] = useState(featuredProducts);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortOption, setSortOption] = useState('featured');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(viewParam === 'list' ? 'list' : 'grid');
+  const [sortOption, setSortOption] = useState(sortParam || 'featured');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [compareProducts, setCompareProducts] = useState<number[]>([]);
   const [quickViewProduct, setQuickViewProduct] = useState<number | null>(null);
@@ -151,6 +157,41 @@ const CategoryPage: React.FC = () => {
     
     setFilteredProducts(filtered);
   }, [slug, products, activeFilters, sortOption]);
+
+  // Update URL when view mode or sort option changes
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    
+    if (viewMode === 'list') {
+      params.set('view', 'list');
+    } else {
+      params.delete('view');
+    }
+    
+    if (sortOption !== 'featured') {
+      params.set('sort', sortOption);
+    } else {
+      params.delete('sort');
+    }
+    
+    const newSearch = params.toString();
+    const newPath = `${location.pathname}${newSearch ? `?${newSearch}` : ''}`;
+    
+    // Only update if the URL would change
+    if (location.search !== (newSearch ? `?${newSearch}` : '')) {
+      navigate(newPath, { replace: true });
+    }
+  }, [viewMode, sortOption, location.pathname, location.search, navigate]);
+
+  // Handle view mode toggle
+  const handleViewModeChange = (mode: 'grid' | 'list') => {
+    setViewMode(mode);
+  };
+  
+  // Handle sort option change
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSortOption(e.target.value);
+  };
 
   // Handle filter changes
   const handleFilterChange = (filterType: string, value: string | [number, number]) => {
@@ -287,6 +328,7 @@ const CategoryPage: React.FC = () => {
               <button 
                 className={styles.mobileFilterButton}
                 onClick={() => setMobileFiltersOpen(true)}
+                aria-label="Open filters"
               >
                 <FiFilter /> Filters
                 {getActiveFiltersCount() > 0 && (
@@ -304,14 +346,14 @@ const CategoryPage: React.FC = () => {
               <div className={styles.viewToggle}>
                 <button 
                   className={`${styles.viewButton} ${viewMode === 'grid' ? styles.active : ''}`}
-                  onClick={() => setViewMode('grid')}
+                  onClick={() => handleViewModeChange('grid')}
                   aria-label="Grid view"
                 >
                   <FiGrid />
                 </button>
                 <button 
                   className={`${styles.viewButton} ${viewMode === 'list' ? styles.active : ''}`}
-                  onClick={() => setViewMode('list')}
+                  onClick={() => handleViewModeChange('list')}
                   aria-label="List view"
                 >
                   <FiList />
@@ -319,12 +361,13 @@ const CategoryPage: React.FC = () => {
               </div>
               
               <div className={styles.sortContainer}>
-                <label htmlFor="sort">Sort by:</label>
+                <label htmlFor="sort-select" className={styles.sortLabel}>Sort by:</label>
                 <select 
-                  id="sort" 
+                  id="sort-select"
                   className={styles.sortSelect}
                   value={sortOption}
-                  onChange={(e) => setSortOption(e.target.value)}
+                  onChange={handleSortChange}
+                  aria-label="Sort products"
                 >
                   <option value="featured">Featured</option>
                   <option value="price-low">Price: Low to High</option>
@@ -346,27 +389,43 @@ const CategoryPage: React.FC = () => {
           />
           
           {/* Products Grid/List */}
-          {filteredProducts.length > 0 ? (
-            <div className={`${styles.productsGrid} ${viewMode === 'list' ? styles.listView : ''}`}>
-              {filteredProducts.map(product => (
-                <div key={product.id} className={styles.productCardWrapper}>
-                  <ProductCard 
-                    {...product} 
-                    isCompared={compareProducts.includes(product.id)}
-                    onCompareToggle={() => toggleCompare(product.id)}
-                  />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className={styles.noResults}>
-              <h3>No products match your filters</h3>
-              <p>Try adjusting your filters or browse our other products</p>
-              <button className={styles.clearFiltersButton} onClick={clearAllFilters}>
-                Clear All Filters
-              </button>
-            </div>
-          )}
+          <div className={`${styles.productGrid} ${viewMode === 'list' ? styles.listView : ''}`}>
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map(product => (
+                <ProductCard 
+                      key={product.id}
+                      product={{
+                        id: product.id,
+                        name: product.name,
+                        slug: product.slug,
+                        category: product.category,
+                        subcategory: product.subcategory,
+                        isNew: product.isNew,
+                        isBestSeller: product.isBestSeller,
+                        variants: product.variants || [{
+                          id: `${product.id}-default`,
+                          name: '',
+                          image: product.image,
+                          price: product.price,
+                          originalPrice: product.originalPrice,
+                          description: product.description || ''
+                    }]
+                  }}
+                />
+              ))
+            ) : (
+              <div className={styles.noProductsFound}>
+                <h3>No products found</h3>
+                <p>Try adjusting your filters or search criteria</p>
+                <button 
+                  className={styles.clearFiltersButton}
+                  onClick={clearAllFilters}
+                >
+                  Clear All Filters
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       

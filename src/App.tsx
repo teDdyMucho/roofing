@@ -86,7 +86,7 @@ const AppContent = () => {
         element={<ProtectedRoute element={<UserSettings />} />} 
       />
 
-      <Route path="/flashco" element={<FlashCoHome />} />
+      <Route path="/SouthlandRoofing" element={<FlashCoHome />} />
       <Route path="/product/:id" element={<ProductDetail />} />
       <Route path="/category/:slug" element={<CategoryPage />} />
       <Route path="/products" element={<ProductList products={sampleProducts} />} />

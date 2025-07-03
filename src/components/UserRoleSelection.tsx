@@ -22,7 +22,8 @@ const UserRoleSelection: React.FC = () => {
     // Store the role selection in localStorage to remember the choice
     localStorage.setItem('userRole', 'customer');
     // For now, just show an alert as this is a placeholder
-    alert('Customer portal coming soon!');
+    // alert('Customer portal coming soon!');
+    navigate('/SouthlandRoofing');
   };
 
   return (
