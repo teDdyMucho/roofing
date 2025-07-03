@@ -2,15 +2,17 @@
  * Dashboard Component
  * Main interface for authenticated users providing access to all app features
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
+import { 
   FaHome, FaChartLine, FaCog, FaSignOutAlt,
-  FaBell, FaSearch, FaRobot, FaPlus, FaClipboardList,
-  FaCalendarAlt, FaUsers, FaFileInvoiceDollar
+  FaClipboardList, FaCalendarAlt, FaUsers, FaFileInvoiceDollar, 
+  FaRobot, FaSearch, FaBell, FaPaperPlane, FaPlus, FaTimes
 } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { User as AppUser } from '../services/userService';
+import { Project, fetchProjects, createProject, formatCurrency, formatDate } from '../services/projectService';
+import { ChatMessage, fetchProjectMessages, sendProjectMessage, subscribeToProjectMessages } from '../services/projectChatService';
 import ProjectTeamPanel from './ProjectTeamPanel';
 import ProjectsList from './ProjectsList';
 import '../styles/Dashboard.css';
@@ -25,16 +27,28 @@ const Dashboard: React.FC = () => {
   // UI state
   const [activeTab, setActiveTab] = useState('overview');
   const [showAiMenu, setShowAiMenu] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [showCreateProjectForm, setShowCreateProjectForm] = useState(false);
   
   // New project form state
   const [newProject, setNewProject] = useState({
+    name: '',
     client: '',
     address: '',
-    timeline: '',
+    start_date: '',
+    end_date: '',
     value: ''
   });
+  
+  // Projects state
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Project chat state
+  const [projectMessages, setProjectMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
   
   // Handle new project form input changes
   const handleNewProjectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,52 +59,147 @@ const Dashboard: React.FC = () => {
     }));
   };
   
-  // Handle new project form submission
-  const handleCreateProject = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Create a new project with the form data
-    const newProjectData = {
-      id: recentProjects.length + 1,
-      client: newProject.client,
-      address: newProject.address,
-      status: 'New',
-      date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
-      value: newProject.value.startsWith('$') ? newProject.value : `$${newProject.value}`,
-      timeline: newProject.timeline
+  // Load projects from the database
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await fetchProjects();
+        setProjects(data);
+      } catch (err) {
+        console.error('Failed to load projects:', err);
+        setError('Failed to load projects. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
     };
     
-    // Add the new project to the list
-    // In a real app, this would be an API call
-    setRecentProjects([...recentProjects, newProjectData]);
-    console.log('Creating new project:', newProjectData);
+    loadProjects();
+  }, []);
+  
+  // Handle back button click to return to projects list
+  const handleBackToProjects = () => {
+    setSelectedProjectId(null);
+  };
+  
+  // Format timeline for display
+  const formatTimeline = (startDate: string | null, endDate: string | null) => {
+    if (!startDate && !endDate) return 'Not specified';
+    if (startDate && !endDate) return `Starts ${formatDate(startDate)}`;
+    if (!startDate && endDate) return `Due by ${formatDate(endDate)}`;
+    return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+  };
+  
+  // Load project messages when a project is selected
+  useEffect(() => {
+    if (!selectedProjectId) {
+      setProjectMessages([]);
+      return;
+    }
     
-    // Set the selected project to the newly created one
-    setSelectedProjectId(newProjectData.id);
+    const loadMessages = async () => {
+      try {
+        const messages = await fetchProjectMessages(selectedProjectId);
+        setProjectMessages(messages);
+      } catch (err) {
+        console.error('Failed to load project messages:', err);
+      }
+    };
     
-    // Reset form and close modal
-    setNewProject({
-      client: '',
-      address: '',
-      timeline: '',
-      value: ''
+    loadMessages();
+    
+    // Subscribe to new messages
+    const unsubscribe = subscribeToProjectMessages(selectedProjectId, (message) => {
+      setProjectMessages(prev => [...prev, message]);
     });
-    setShowCreateProjectForm(false);
     
-    // Switch to the Projects tab to show the new project
-    setActiveTab('projects');
+    // Cleanup subscription on unmount or when project changes
+    return () => {
+      unsubscribe();
+    };
+  }, [selectedProjectId]);
+  
+  // Handle sending a new message
+  const handleSendProjectMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedProjectId || !newMessage.trim() || !currentUser) return;
+    
+    try {
+      setIsSendingMessage(true);
+      
+      await sendProjectMessage({
+        project_id: selectedProjectId,
+        user_id: currentUser.id,
+        message: newMessage.trim()
+      });
+      
+      setNewMessage('');
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+  
+  // Handle new project form submission
+  const handleCreateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      // Parse value to number
+      const valueNumber = newProject.value ? parseFloat(newProject.value.replace(/[^0-9.]/g, '')) : null;
+      
+      // Create a new project with the form data
+      const projectData = {
+        name: newProject.name,
+        client: newProject.client,
+        address: newProject.address,
+        status: 'Estimate' as const,
+        start_date: newProject.start_date || null,
+        end_date: newProject.end_date || null,
+        value: valueNumber
+      };
+      
+      // Send to database
+      const createdProject = await createProject(projectData);
+      
+      // Add the new project to the list
+      setProjects(prev => [createdProject, ...prev]);
+      console.log('Created new project:', createdProject);
+      
+      // Set the selected project to the newly created one
+      setSelectedProjectId(createdProject.id);
+      
+      // Reset form and close modal
+      setNewProject({
+        name: '',
+        client: '',
+        address: '',
+        start_date: '',
+        end_date: '',
+        value: ''
+      });
+      setShowCreateProjectForm(false);
+      
+      // Switch to the Projects tab to show the new project
+      setActiveTab('projects');
+    } catch (err) {
+      console.error('Failed to create project:', err);
+      alert('Failed to create project. Please try again.');
+    }
+  };
+  
+  // Handle project click to view project details
+  const handleProjectClick = (projectId: string) => {
+    setSelectedProjectId(projectId);
   };
   
   // ========== MOCK DATA ==========
   /**
-   * Recent projects data
+   * This data will be replaced by real data from the database
    */
-  const [recentProjects, setRecentProjects] = useState([
-    { id: 1, client: 'Johnson Residence', address: '123 Oak St', status: 'In Progress', date: '2025-06-25', value: '$12,500' },
-    { id: 2, client: 'Smith Commercial', address: '456 Pine Ave', status: 'Scheduled', date: '2025-07-05', value: '$28,750' },
-    { id: 3, client: 'Garcia Family', address: '789 Maple Dr', status: 'Completed', date: '2025-06-20', value: '$8,900' },
-    { id: 4, client: 'Downtown Office', address: '101 Main St', status: 'Estimate', date: '2025-07-10', value: '$34,200' }
-  ]);
   
   /**
    * Upcoming appointments data
@@ -232,87 +341,102 @@ const Dashboard: React.FC = () => {
   
   return (
     <div className="dashboard-container">
-      {/* Project Creation Modal */}
+      {/* Create Project Modal */}
       {showCreateProjectForm && (
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
               <h2>Create New Project</h2>
-              <button 
-                className="modal-close-btn" 
-                onClick={() => setShowCreateProjectForm(false)}
-              >
-                ×
+              <button className="close-button" onClick={() => setShowCreateProjectForm(false)}>
+                <FaTimes />
               </button>
             </div>
             
-            <form onSubmit={handleCreateProject} className="project-form">
+            <form onSubmit={handleCreateProject}>
               <div className="form-group">
-                <label htmlFor="client">Client:</label>
-                <input
-                  type="text"
-                  id="client"
-                  name="client"
-                  value={newProject.client}
-                  onChange={handleNewProjectChange}
-                  placeholder="Client name"
-                  required
+                <label htmlFor="project-name">Project Name</label>
+                <input 
+                  type="text" 
+                  id="project-name" 
+                  name="name" 
+                  value={newProject.name} 
+                  onChange={handleNewProjectChange} 
+                  placeholder="Enter project name" 
+                  required 
                 />
               </div>
               
               <div className="form-group">
-                <label htmlFor="address">Address:</label>
-                <input
-                  type="text"
-                  id="address"
-                  name="address"
-                  value={newProject.address}
-                  onChange={handleNewProjectChange}
-                  placeholder="Project address"
-                  required
+                <label htmlFor="project-client">Client</label>
+                <input 
+                  type="text" 
+                  id="project-client" 
+                  name="client" 
+                  value={newProject.client} 
+                  onChange={handleNewProjectChange} 
+                  placeholder="Client name or company" 
+                  required 
                 />
               </div>
               
               <div className="form-group">
-                <label htmlFor="timeline">Timeline:</label>
-                <input
-                  type="text"
-                  id="timeline"
-                  name="timeline"
-                  value={newProject.timeline}
-                  onChange={handleNewProjectChange}
-                  placeholder="e.g., Jul 15, 2025 - Aug 10, 2025"
-                  required
+                <label htmlFor="project-address">Address</label>
+                <input 
+                  type="text" 
+                  id="project-address" 
+                  name="address" 
+                  value={newProject.address} 
+                  onChange={handleNewProjectChange} 
+                  placeholder="Full project address" 
+                  required 
                 />
               </div>
               
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="project-start-date">Start Date</label>
+                  <input 
+                    type="date" 
+                    id="project-start-date" 
+                    name="start_date" 
+                    value={newProject.start_date} 
+                    onChange={handleNewProjectChange} 
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="project-end-date">End Date</label>
+                  <input 
+                    type="date" 
+                    id="project-end-date" 
+                    name="end_date" 
+                    value={newProject.end_date} 
+                    onChange={handleNewProjectChange} 
+                  />
+                </div>
+              </div>
+              
               <div className="form-group">
-                <label htmlFor="value">Value:</label>
-                <input
-                  type="text"
-                  id="value"
-                  name="value"
-                  value={newProject.value}
-                  onChange={handleNewProjectChange}
-                  placeholder="e.g., $15,000"
-                  required
+                <label htmlFor="project-value">Value ($)</label>
+                <input 
+                  type="text" 
+                  id="project-value" 
+                  name="value" 
+                  value={newProject.value} 
+                  onChange={handleNewProjectChange} 
+                  placeholder="e.g., 5,000" 
                 />
               </div>
               
               <div className="form-actions">
-                <button 
-                  type="button" 
-                  className="cancel-btn" 
-                  onClick={() => setShowCreateProjectForm(false)}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="submit-btn">Create Project</button>
+                <button type="button" onClick={() => setShowCreateProjectForm(false)}>Cancel</button>
+                <button type="submit">Create Project</button>
               </div>
             </form>
           </div>
         </div>
       )}
+      
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-header">
@@ -457,7 +581,7 @@ const Dashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {recentProjects.map(project => (
+                  {projects.slice(0, 5).map(project => (
                     <tr key={project.id}>
                       <td>{project.client}</td>
                       <td>{project.address}</td>
@@ -466,10 +590,13 @@ const Dashboard: React.FC = () => {
                           {project.status}
                         </span>
                       </td>
-                      <td>{project.date}</td>
-                      <td>{project.value}</td>
+                      <td>{formatDate(project.start_date)}</td>
+                      <td>{formatCurrency(project.value)}</td>
                       <td>
-                        <button className="action-btn">View</button>
+                        <button className="action-btn" onClick={() => {
+                          handleProjectClick(project.id);
+                          setActiveTab('projects');
+                        }}>View</button>
                       </td>
                     </tr>
                   ))}
@@ -538,16 +665,16 @@ const Dashboard: React.FC = () => {
                 {/* Left side: Projects Navigation */}
                 <div className="projects-sidebar">
                   <div className="projects-sidebar-header">
-                    <h3>Ongoing Projects</h3>
-                    <button className="new-project-btn"><FaPlus /> New</button>
+                    <h3>Projects</h3>
+                    <button className="new-project-btn" onClick={() => setShowCreateProjectForm(true)}><FaPlus /> New</button>
                   </div>
                   
                   <div className="projects-list-sidebar">
-                    {recentProjects.map((project) => (
+                    {projects.map((project) => (
                       <div 
                         key={project.id} 
                         className={`project-item ${project.id === selectedProjectId ? 'active' : ''}`}
-                        onClick={() => setSelectedProjectId(project.id)}
+                        onClick={() => handleProjectClick(project.id)}
                       >
                         <div className="project-item-header">
                           <h4>{project.client}</h4>
@@ -556,7 +683,7 @@ const Dashboard: React.FC = () => {
                           </span>
                         </div>
                         <p className="project-address">{project.address}</p>
-                        <p className="project-value">{project.value}</p>
+                        <p className="project-value">{formatCurrency(project.value)}</p>
                       </div>
                     ))}
                   </div>
@@ -577,32 +704,41 @@ const Dashboard: React.FC = () => {
                   <>
                   <div className="project-details-section">
                     <div className="project-details-header">
-                      <button className="back-button" onClick={() => setSelectedProjectId(null)}>
+                      <button className="back-button" onClick={handleBackToProjects}>
                         <span>← Back to Projects</span>
                       </button>
-                      <h2>Johnson Residence Roof Replacement</h2>
+                      <h2>{projects.find(project => project.id === selectedProjectId)?.name}</h2>
                       <span className="status-badge in-progress">In Progress</span>
                     </div>
                     
                     <div className="project-info-section">
                       <div className="info-group">
                         <h4>Client:</h4>
-                        <p>Robert Johnson</p>
+                        <p>{projects.find(project => project.id === selectedProjectId)?.client}</p>
                       </div>
                       
                       <div className="info-group">
                         <h4>Address:</h4>
-                        <p>123 Oak Street, Springfield, IL</p>
+                        <p>{projects.find(project => project.id === selectedProjectId)?.address}</p>
                       </div>
                       
                       <div className="info-group">
                         <h4>Timeline:</h4>
-                        <p>Jun 15, 2025 - Jul 10, 2025</p>
+                        {selectedProjectId && (
+                          <p>{formatTimeline(
+                            projects.find(project => project.id === selectedProjectId)?.start_date || null,
+                            projects.find(project => project.id === selectedProjectId)?.end_date || null
+                          )}</p>
+                        )}
                       </div>
                       
                       <div className="info-group">
                         <h4>Value:</h4>
-                        <p>$12,500</p>
+                        {selectedProjectId && (
+                          <p>{formatCurrency(
+                            projects.find(project => project.id === selectedProjectId)?.value || null
+                          )}</p>
+                        )}
                       </div>
                       
                       <div className="info-group">
@@ -617,63 +753,41 @@ const Dashboard: React.FC = () => {
                   
                   <div className="project-chat-section">
                     <div className="chat-panel-header">
-                      <h3>Johnson Residence Roof Replacement - Project Chat</h3>
+                      <h3>{projects.find(project => project.id === selectedProjectId)?.name} - Project Chat</h3>
                     </div>
                     
                     <div className="project-chat-messages">
-                      <div className="chat-day-divider">Today</div>
-                      
-                      <div className="project-message">
-                        <div className="message-avatar">SJ</div>
-                        <div className="message-content-wrapper">
-                          <div className="message-header">
-                            <span className="message-sender">Sarah Johnson</span>
-                            <span className="message-role">Project Manager</span>
-                            <span className="message-time">08:30 AM</span>
-                          </div>
-                          <div className="message-body">
-                            Good morning team! Just wanted to check in on the progress for the shingle installation.
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="project-message">
-                        <div className="message-avatar">MC</div>
-                        <div className="message-content-wrapper">
-                          <div className="message-header">
-                            <span className="message-sender">Michael Chen</span>
-                            <span className="message-role">Roofing Specialist</span>
-                            <span className="message-time">08:45 AM</span>
-                          </div>
-                          <div className="message-body">
-                            We've completed about 60% of the shingle installation. Should be done by tomorrow afternoon if weather permits.
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="project-message">
-                        <div className="message-avatar">DR</div>
-                        <div className="message-content-wrapper">
-                          <div className="message-header">
-                            <span className="message-sender">David Rodriguez</span>
-                            <span className="message-role">Estimator</span>
-                            <span className="message-time">09:15 AM</span>
-                          </div>
-                          <div className="message-body">
-                            The client called asking about adding gutter guards. I've prepared an additional estimate for that work.
-                            <div className="message-attachment">
-                              <span className="attachment-icon">📄</span>
-                              <span className="attachment-name">Gutter Guard Estimate.pdf</span>
+                      {projectMessages.length === 0 ? (
+                        <div className="empty-chat-message">No messages yet. Start the conversation!</div>
+                      ) : (
+                        <>
+                          <div className="chat-day-divider">Today</div>
+                          {projectMessages.map(message => (
+                            <div key={message.id} className={`project-message ${message.user_id === currentUser?.id ? 'own-message' : ''}`}>
+                              <div className="message-avatar">
+                                {message.user?.first_name?.[0]}{message.user?.last_name?.[0] || ''}
+                              </div>
+                              <div className="message-content-wrapper">
+                                <div className="message-header">
+                                  <span className="message-sender">{message.user?.first_name || 'User'} {message.user?.last_name || ''}</span>
+                                  <span className="message-role">{message.user?.role || 'Member'}</span>
+                                  <span className="message-time">{new Date(message.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                </div>
+                                <div className="message-body">{message.message}</div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      </div>
+                          ))}
+                        </>
+                      )}
                     </div>
                     
-                    <div className="project-chat-input">
+                    <form className="project-chat-input" onSubmit={handleSendProjectMessage}>
                       <input 
                         type="text" 
                         placeholder="Type a message..." 
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        disabled={isSendingMessage}
                       />
                       <button className="upload-photo-btn" title="Upload Photo">
                         <input 
@@ -686,10 +800,10 @@ const Dashboard: React.FC = () => {
                         <label htmlFor="project-photo-upload">📷</label>
                       </button>
                       <button className="attach-btn" title="Attach File">📎</button>
-                      <button className="send-btn">
-                        Send
+                      <button type="submit" className="send-btn" disabled={isSendingMessage || !newMessage.trim()}>
+                        {isSendingMessage ? 'Sending...' : 'Send'}
                       </button>
-                    </div>
+                    </form>
                   </div>
                   </>
                   ) : (

@@ -28,12 +28,20 @@ import { sampleProducts } from './data/products';
  * Redirects to login if user is not authenticated
  */
 const ProtectedRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, currentUser } = useAuth();
   const location = useLocation();
   
-  return isAuthenticated ? 
-    element : 
-    <Navigate to="/login" state={{ from: location }} replace />;
+  // Strict authentication check: must have both isAuthenticated flag AND a currentUser object
+  const isFullyAuthenticated = isAuthenticated && currentUser !== null;
+  
+  // If not authenticated, redirect to login with current location for redirect after login
+  if (!isFullyAuthenticated) {
+    console.log('Access denied: User not authenticated, redirecting to login');
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+  
+  // User is authenticated, allow access to the protected route
+  return element;
 };
 
 /**
