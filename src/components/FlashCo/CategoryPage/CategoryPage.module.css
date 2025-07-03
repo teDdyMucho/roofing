@@ -1,3 +1,14 @@
+.App {
+  align-items: center;
+  background-color: #f5f5f5;
+  display: flow;
+  justify-content: unset;
+  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
 .categoryPage {
   max-width: 1200px;
   margin: 0 auto;

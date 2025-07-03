@@ -98,7 +98,7 @@ export const featuredProducts = [
     id: 2,
     name: 'Waterproof Membrane Underlayment',
     slug: 'waterproof-membrane-underlayment',
-    image: '/images/round-flashing.png',
+    image: 'images/FlashWrap_SquareSplitFlashings/FlashWrap_RoundSquare1.png',
     price: 149.99,
     originalPrice: 169.99,
     rating: 4.8,
@@ -110,7 +110,7 @@ export const featuredProducts = [
       {
         id: '2-1',
         name: 'Standard Roll',
-        image: '/images/round-flashing.png',
+        image: 'images/FlashWrap_SquareSplitFlashings/FlashWrap_RoundSquare2.png',
         price: 149.99,
         originalPrice: 169.99,
         type: 'Standard',
