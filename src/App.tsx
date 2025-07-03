@@ -1,6 +1,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { supabase } from './lib/supabase';
 import './App.css';
+
+
 
 // Component imports
 import Login from './components/Login';
@@ -104,5 +108,4 @@ function App() {
     </div>
   );
 }
-
 export default App;

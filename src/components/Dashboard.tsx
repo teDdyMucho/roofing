@@ -25,18 +25,72 @@ const Dashboard: React.FC = () => {
   // UI state
   const [activeTab, setActiveTab] = useState('overview');
   const [showAiMenu, setShowAiMenu] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [showCreateProjectForm, setShowCreateProjectForm] = useState(false);
+  
+  // New project form state
+  const [newProject, setNewProject] = useState({
+    client: '',
+    address: '',
+    timeline: '',
+    value: ''
+  });
+  
+  // Handle new project form input changes
+  const handleNewProjectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewProject(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  // Handle new project form submission
+  const handleCreateProject = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Create a new project with the form data
+    const newProjectData = {
+      id: recentProjects.length + 1,
+      client: newProject.client,
+      address: newProject.address,
+      status: 'New',
+      date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
+      value: newProject.value.startsWith('$') ? newProject.value : `$${newProject.value}`,
+      timeline: newProject.timeline
+    };
+    
+    // Add the new project to the list
+    // In a real app, this would be an API call
+    setRecentProjects([...recentProjects, newProjectData]);
+    console.log('Creating new project:', newProjectData);
+    
+    // Set the selected project to the newly created one
+    setSelectedProjectId(newProjectData.id);
+    
+    // Reset form and close modal
+    setNewProject({
+      client: '',
+      address: '',
+      timeline: '',
+      value: ''
+    });
+    setShowCreateProjectForm(false);
+    
+    // Switch to the Projects tab to show the new project
+    setActiveTab('projects');
+  };
   
   // ========== MOCK DATA ==========
   /**
    * Recent projects data
-   * In a production app, this would come from an API call
    */
-  const recentProjects = [
+  const [recentProjects, setRecentProjects] = useState([
     { id: 1, client: 'Johnson Residence', address: '123 Oak St', status: 'In Progress', date: '2025-06-25', value: '$12,500' },
     { id: 2, client: 'Smith Commercial', address: '456 Pine Ave', status: 'Scheduled', date: '2025-07-05', value: '$28,750' },
     { id: 3, client: 'Garcia Family', address: '789 Maple Dr', status: 'Completed', date: '2025-06-20', value: '$8,900' },
     { id: 4, client: 'Downtown Office', address: '101 Main St', status: 'Estimate', date: '2025-07-10', value: '$34,200' }
-  ];
+  ]);
   
   /**
    * Upcoming appointments data
@@ -178,6 +232,87 @@ const Dashboard: React.FC = () => {
   
   return (
     <div className="dashboard-container">
+      {/* Project Creation Modal */}
+      {showCreateProjectForm && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>Create New Project</h2>
+              <button 
+                className="modal-close-btn" 
+                onClick={() => setShowCreateProjectForm(false)}
+              >
+                ×
+              </button>
+            </div>
+            
+            <form onSubmit={handleCreateProject} className="project-form">
+              <div className="form-group">
+                <label htmlFor="client">Client:</label>
+                <input
+                  type="text"
+                  id="client"
+                  name="client"
+                  value={newProject.client}
+                  onChange={handleNewProjectChange}
+                  placeholder="Client name"
+                  required
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="address">Address:</label>
+                <input
+                  type="text"
+                  id="address"
+                  name="address"
+                  value={newProject.address}
+                  onChange={handleNewProjectChange}
+                  placeholder="Project address"
+                  required
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="timeline">Timeline:</label>
+                <input
+                  type="text"
+                  id="timeline"
+                  name="timeline"
+                  value={newProject.timeline}
+                  onChange={handleNewProjectChange}
+                  placeholder="e.g., Jul 15, 2025 - Aug 10, 2025"
+                  required
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="value">Value:</label>
+                <input
+                  type="text"
+                  id="value"
+                  name="value"
+                  value={newProject.value}
+                  onChange={handleNewProjectChange}
+                  placeholder="e.g., $15,000"
+                  required
+                />
+              </div>
+              
+              <div className="form-actions">
+                <button 
+                  type="button" 
+                  className="cancel-btn" 
+                  onClick={() => setShowCreateProjectForm(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="submit-btn">Create Project</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-header">
@@ -307,7 +442,7 @@ const Dashboard: React.FC = () => {
           <div className="dashboard-section">
             <div className="section-header">
               <h2>Recent Projects</h2>
-              <button className="view-all-btn">View All</button>
+              <button className="view-all-btn" onClick={() => setActiveTab('projects')}>View All</button>
             </div>
             <div className="table-container">
               <table className="data-table">
@@ -393,45 +528,15 @@ const Dashboard: React.FC = () => {
           </div>
             </>
           )}
-
-          {/* Estimating AI Content */}
-          {activeTab === 'ai-estimating' && (
-            <div className="ai-chat-container">
-              <h1>Estimating AI Assistant</h1>
-              <div className="ai-description">
-                <p>Your intelligent assistant for creating accurate roofing estimates, material calculations, and cost projections.</p>
-              </div>
-              <div className="chat-messages">
-                {estimatingAiChat.map((chat, index) => (
-                  <div key={index} className={`message ${chat.sender}`}>
-                    {chat.sender === 'ai' && <div className="ai-avatar"><FaRobot /></div>}
-                    <div className="message-content">{chat.message}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="chat-input">
-                <input 
-                  type="text" 
-                  placeholder="Ask about roofing estimates, materials, or pricing..." 
-                  value={estimatingAiMessage}
-                  onChange={(e) => setEstimatingAiMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage('estimating')}
-                />
-                <button onClick={() => handleSendMessage('estimating')}>
-                  Send
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Admin AI Content */}
-          {activeTab === 'ai-admin' && (
-            <div className="admin-ai-container">
-              <h1>Admin AI Assistant</h1>
+          
+          {/* Projects Tab Content */}
+          {activeTab === 'projects' && (
+            <div className="projects-container">
+              <h1>Projects</h1>
               
-              <div className="admin-content-wrapper">
+              <div className="projects-content-wrapper">
                 {/* Left side: Projects Navigation */}
-                <div className="admin-projects-sidebar">
+                <div className="projects-sidebar">
                   <div className="projects-sidebar-header">
                     <h3>Ongoing Projects</h3>
                     <button className="new-project-btn"><FaPlus /> New</button>
@@ -441,8 +546,8 @@ const Dashboard: React.FC = () => {
                     {recentProjects.map((project) => (
                       <div 
                         key={project.id} 
-                        className={`project-item ${project.id === 1 ? 'active' : ''}`}
-                        onClick={() => console.log(`Selected project ${project.id}`)}
+                        className={`project-item ${project.id === selectedProjectId ? 'active' : ''}`}
+                        onClick={() => setSelectedProjectId(project.id)}
                       >
                         <div className="project-item-header">
                           <h4>{project.client}</h4>
@@ -455,13 +560,24 @@ const Dashboard: React.FC = () => {
                       </div>
                     ))}
                   </div>
+                  
+                  <div className="create-project-footer">
+                    <button 
+                      className="create-project-btn"
+                      onClick={() => setShowCreateProjectForm(true)}
+                    >
+                      <FaPlus /> Create New Project
+                    </button>
+                  </div>
                 </div>
                 
                 {/* Right side: Combined Project Details and Chat */}
                 <div className="project-combined-panel">
+                  {selectedProjectId ? (
+                  <>
                   <div className="project-details-section">
                     <div className="project-details-header">
-                      <button className="back-button">
+                      <button className="back-button" onClick={() => setSelectedProjectId(null)}>
                         <span>← Back to Projects</span>
                       </button>
                       <h2>Johnson Residence Roof Replacement</h2>
@@ -558,26 +674,96 @@ const Dashboard: React.FC = () => {
                       <input 
                         type="text" 
                         placeholder="Type a message..." 
-                        value={adminAiMessage}
-                        onChange={(e) => setAdminAiMessage(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage('admin')}
                       />
                       <button className="upload-photo-btn" title="Upload Photo">
                         <input 
                           type="file" 
                           accept="image/*" 
-                          id="photo-upload" 
+                          id="project-photo-upload" 
                           style={{ display: 'none' }} 
                           onChange={(e) => console.log('Photo selected:', e.target.files?.[0]?.name)}
                         />
-                        <label htmlFor="photo-upload">📷</label>
+                        <label htmlFor="project-photo-upload">📷</label>
                       </button>
                       <button className="attach-btn" title="Attach File">📎</button>
-                      <button className="send-btn" onClick={() => handleSendMessage('admin')}>
+                      <button className="send-btn">
                         Send
                       </button>
                     </div>
                   </div>
+                  </>
+                  ) : (
+                    <div className="no-project-selected">
+                      <div className="empty-state">
+                        <FaClipboardList className="empty-icon" />
+                        <h3>Select a Project</h3>
+                        <p>Click on a project from the list to view details and chat</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Estimating AI Content */}
+          {activeTab === 'ai-estimating' && (
+            <div className="ai-chat-container">
+              <h1>Estimating AI Assistant</h1>
+              <div className="ai-description">
+                <p>Your intelligent assistant for creating accurate roofing estimates, material calculations, and cost projections.</p>
+              </div>
+              <div className="chat-messages">
+                {estimatingAiChat.map((chat, index) => (
+                  <div key={index} className={`message ${chat.sender}`}>
+                    {chat.sender === 'ai' && <div className="ai-avatar"><FaRobot /></div>}
+                    <div className="message-content">{chat.message}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="chat-input">
+                <input 
+                  type="text" 
+                  placeholder="Ask about roofing estimates, materials, or pricing..." 
+                  value={estimatingAiMessage}
+                  onChange={(e) => setEstimatingAiMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage('estimating')}
+                />
+                <button onClick={() => handleSendMessage('estimating')}>
+                  Send
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Admin AI Content */}
+          {activeTab === 'ai-admin' && (
+            <div className="admin-ai-container">
+              <h1>Admin AI Assistant</h1>
+              
+              <div className="admin-content-wrapper">
+                <div className="ai-description">
+                  <p>Your intelligent assistant for managing administrative tasks, scheduling, and business analytics.</p>
+                </div>
+                <div className="chat-messages">
+                  {adminAiChat.map((chat, index) => (
+                    <div key={index} className={`message ${chat.sender}`}>
+                      {chat.sender === 'ai' && <div className="ai-avatar"><FaRobot /></div>}
+                      <div className="message-content">{chat.message}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="chat-input">
+                  <input 
+                    type="text" 
+                    placeholder="Ask about scheduling, team management, or business analytics..." 
+                    value={adminAiMessage}
+                    onChange={(e) => setAdminAiMessage(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage('admin')}
+                  />
+                  <button onClick={() => handleSendMessage('admin')}>
+                    Send
+                  </button>
                 </div>
               </div>
             </div>

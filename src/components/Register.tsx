@@ -23,7 +23,7 @@ const Register: React.FC = () => {
     username: '',
     first_name: '',
     last_name: '',
-    role: 'User', // Default role
+    role: 'user', // Default role
     avatar_url: '',
     password: '',
     confirmPassword: ''
@@ -223,7 +223,21 @@ const Register: React.FC = () => {
             {errors.last_name && <span className="error-message">{errors.last_name}</span>}
           </div>
           
-          {/* Role is set to 'User' by default */}
+          <div className="input-group">
+            <label htmlFor="role">Role</label>
+            <div className="input-with-icon">
+              <FaUserTag className="input-icon" />
+              <select
+                id="role"
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+              >
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </div>
           
           <div className="input-group">
             <label htmlFor="avatar_url">Avatar URL (Optional)</label>

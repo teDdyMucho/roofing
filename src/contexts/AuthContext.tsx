@@ -188,7 +188,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Signup with email and password
-  const signup = async (email: string, password: string, username: string, firstName: string, lastName: string, role: string = 'User'): Promise<boolean> => {
+  const signup = async (email: string, password: string, username: string, firstName: string, lastName: string, role: string = 'user'): Promise<boolean> => {
     if (!email || !password || !username) {
       console.error('Signup validation failed: Missing required fields');
       return false;
@@ -197,16 +197,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(true);
     
     try {
-      // Ensure role is one of the valid enum values from the database
-      const validRole = role === 'Administrator' ? 'Administrator' : 'User';
+      // Use the correct enum values for the user_role type
+      // The database is now using a proper enum type with 'admin' and 'user' values
+      const validRole = role === 'admin' ? 'admin' : 'user';
       
       console.log('Attempting signup with:', { email, username, firstName, lastName, role: validRole });
       
-      // Step 1: Create the auth user
+      // Step 1: Create the auth user with email/password
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo: window.location.origin + '/login',
           data: {
             username,
             first_name: firstName,
@@ -218,11 +220,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
       
       if (authError) {
+        console.log('Signup result:', { authData, authError });
         console.error('Auth error during signup:', authError);
         console.error('Error details:', authError.message);
         console.error('Error code:', authError.code);
         console.error('Error status:', authError.status);
-        console.error('Full error object:', JSON.stringify(authError, null, 2));
         return false;
       }
       
@@ -232,12 +234,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       console.log('Auth user created successfully:', authData.user.id);
-      console.log('User metadata:', authData.user.user_metadata);
       
-      // Let the database trigger handle the creation of the user in public.users
-      console.log('Auth user created successfully. Relying on database trigger to create user profile.');
-      
-      // No manual insertion into public.users - the database trigger will handle this
+      // Manually create the user in the users table instead of relying on a trigger
+      try {
+        const newUser = {
+          id: authData.user.id,
+          email: email,
+          username: username,
+          first_name: firstName,
+          last_name: lastName,
+          // Use a plain string for role instead of trying to use an enum type
+          // This avoids the 'user_role does not exist' error
+          role: validRole, 
+          avatar_url: '',
+          created_at: new Date().toISOString(),
+          last_sign_in: new Date().toISOString()
+        };
+        
+        // Insert the user into the users table
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert([newUser]);
+          
+        if (insertError) {
+          console.warn('Failed to create user profile in database, but auth user was created:', insertError);
+          // Continue with signup even if database insert fails
+          // The user can still log in and we'll create their profile on first login
+        } else {
+          console.log('User profile created successfully in database');
+        }
+      } catch (dbError) {
+        console.warn('Error creating user profile, but auth user was created:', dbError);
+        // Continue with signup even if database operations fail
+      }
       
       if (authData.user && !authData.user.confirmed_at) {
         console.log('Email confirmation required. Check your email to confirm your account.');
@@ -355,22 +384,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     try {
       console.log('Logging out user...');
-      const { error } = await supabase.auth.signOut();
       
-      if (error) {
-        console.error('Error during logout:', error);
-        throw error;
+      // First clear the local user state to ensure UI updates immediately
+      setCurrentUser(null);
+      
+      // Then attempt to sign out from Supabase
+      // Use a try-catch inside to handle potential session errors
+      try {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          console.warn('Non-critical error during logout:', error);
+          // Continue with logout process despite the error
+        }
+      } catch (signOutError) {
+        // Log but don't rethrow - we've already cleared the local state
+        console.warn('Error during supabase.auth.signOut():', signOutError);
+        // This catches AuthSessionMissingError and other auth-related errors
       }
       
-      // Clear user state
-      setCurrentUser(null);
       console.log('User logged out successfully');
-      
       return;
     } catch (error) {
-      console.error('Logout error:', error);
-      // Even if there's an error, still clear the local state
-      setCurrentUser(null);
+      console.error('Unexpected error in logout function:', error);
+      // Even if there's an error, we've already cleared the local state
     }
   };
 
