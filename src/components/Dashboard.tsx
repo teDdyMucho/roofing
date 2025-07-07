@@ -2,12 +2,12 @@
  * Dashboard Component
  * Main interface for authenticated users providing access to all app features
  */
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   FaHome, FaChartLine, FaCog, FaSignOutAlt,
   FaClipboardList, FaCalendarAlt, FaUsers, FaFileInvoiceDollar, 
-  FaRobot, FaSearch, FaBell, FaPaperPlane, FaPlus, FaTimes
+  FaRobot, FaSearch, FaBell, FaPaperPlane, FaPlus, FaTimes, FaListUl
 } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { User as AppUser } from '../services/userService';
@@ -29,6 +29,7 @@ const Dashboard: React.FC = () => {
   const [showAiMenu, setShowAiMenu] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [showCreateProjectForm, setShowCreateProjectForm] = useState(false);
+  const [showIndexModal, setShowIndexModal] = useState(false);
   
   // New project form state
   const [newProject, setNewProject] = useState({
@@ -77,6 +78,8 @@ const Dashboard: React.FC = () => {
     
     loadProjects();
   }, []);
+  
+  // No click outside detection needed for modal
   
   // Handle back button click to return to projects list
   const handleBackToProjects = () => {
@@ -437,6 +440,78 @@ const Dashboard: React.FC = () => {
         </div>
       )}
       
+      {/* Project Index Modal */}
+      {showIndexModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>Project Index</h2>
+              <button className="close-button" onClick={() => setShowIndexModal(false)}>
+                <FaTimes />
+              </button>
+            </div>
+            
+            <div className="modal-body index-modal-content">
+              <div className="project-info-grid">
+                <div className="info-row">
+                  <div className="info-label">Name of Project:</div>
+                  <div className="info-value">Southland Commercial Complex</div>
+                </div>
+                <div className="info-row">
+                  <div className="info-label">Address:</div>
+                  <div className="info-value">123 Main Street, Austin, TX 78701</div>
+                </div>
+                <div className="info-row">
+                  <div className="info-label">Owner:</div>
+                  <div className="info-value">Southland Properties LLC</div>
+                </div>
+                <div className="info-row">
+                  <div className="info-label">Owner Address:</div>
+                  <div className="info-value">456 Corporate Drive, Suite 300, Austin, TX 78730</div>
+                </div>
+                <div className="info-row">
+                  <div className="info-label">Department:</div>
+                  <div className="info-value">Commercial Roofing</div>
+                </div>
+                <div className="info-row">
+                  <div className="info-label">Pre-Bid Conference D/T:</div>
+                  <div className="info-value">July 15, 2025 - 10:00 AM</div>
+                </div>
+                <div className="info-row">
+                  <div className="info-label">Pre-Bid Conference Location:</div>
+                  <div className="info-value">123 Main Street, Austin, TX - Conference Room B</div>
+                </div>
+                <div className="info-row">
+                  <div className="info-label">Request for Information Due:</div>
+                  <div className="info-value">July 20, 2025</div>
+                </div>
+                <div className="info-row">
+                  <div className="info-label">Request for Substitution Due:</div>
+                  <div className="info-value">July 22, 2025</div>
+                </div>
+                <div className="info-row">
+                  <div className="info-label">Bid Due:</div>
+                  <div className="info-value">July 30, 2025 - 5:00 PM</div>
+                </div>
+              </div>
+              
+              <div className="modal-section-divider"></div>
+              
+              <h3>Project Sections</h3>
+              <ul className="index-links-list">
+                <li><a href="#overview" onClick={() => setShowIndexModal(false)}>Overview</a></li>
+                <li><a href="#timeline" onClick={() => setShowIndexModal(false)}>Timeline</a></li>
+                <li><a href="#budget" onClick={() => setShowIndexModal(false)}>Budget</a></li>
+                <li><a href="#team" onClick={() => setShowIndexModal(false)}>Team Members</a></li>
+                <li><a href="#documents" onClick={() => setShowIndexModal(false)}>Documents</a></li>
+                <li><a href="#photos" onClick={() => setShowIndexModal(false)}>Photos</a></li>
+                <li><a href="#notes" onClick={() => setShowIndexModal(false)}>Notes</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-header">
@@ -730,11 +805,23 @@ const Dashboard: React.FC = () => {
                         
                         <div className="info-group">
                           <h4>Value:</h4>
-                          {selectedProjectId && (
-                            <p>{formatCurrency(
-                              projects.find(project => project.id === selectedProjectId)?.value || null
-                            )}</p>
-                          )}
+                          <div className="header-value-container">
+                            {selectedProjectId && (
+                              <div className="header-value">{formatCurrency(
+                                projects.find(project => project.id === selectedProjectId)?.value || null
+                              )}</div>
+                            )}
+                            <button 
+                              className="index-button" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowIndexModal(true);
+                              }}
+                              aria-label="Project Index"
+                            >
+                              <FaListUl />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>

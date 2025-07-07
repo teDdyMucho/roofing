@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { FaUsers, FaCalendarAlt, FaMapMarkerAlt, FaChevronRight, FaCircle } from 'react-icons/fa';
+import React, { useState, useRef, useEffect } from 'react';
+import { FaUsers, FaCalendarAlt, FaMapMarkerAlt, FaChevronRight, FaCircle, FaListUl } from 'react-icons/fa';
 import ProjectChat from './ProjectChat';
 import ProjectTeamPanel from './ProjectTeamPanel';
 import '../styles/ProjectsList.css';
@@ -28,6 +28,8 @@ interface Project {
 const ProjectsList: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
+  const [indexWindowOpen, setIndexWindowOpen] = useState<string | null>(null);
+  const indexWindowRef = useRef<HTMLDivElement>(null);
   
   // Mock data for projects
   const projects: Project[] = [
@@ -124,7 +126,27 @@ const ProjectsList: React.FC = () => {
   const handleBackToList = () => {
     setViewMode('list');
     setSelectedProject(null);
+    setIndexWindowOpen(null);
   };
+
+  const handleIndexButtonClick = (e: React.MouseEvent, projectId: string) => {
+    e.stopPropagation();
+    setIndexWindowOpen(prevId => prevId === projectId ? null : projectId);
+  };
+
+  // Close index window when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (indexWindowRef.current && !indexWindowRef.current.contains(event.target as Node)) {
+        setIndexWindowOpen(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   
   // Format currency
   const formatCurrency = (value: number) => {
@@ -175,9 +197,35 @@ const ProjectsList: React.FC = () => {
               >
                 <div className="project-header">
                   <h3>{project.name}</h3>
-                  <div className="project-status">
-                    <FaCircle style={{ color: getStatusColor(project.status) }} />
-                    <span>{project.status}</span>
+                  <div className="header-right">
+                    <div className="project-status">
+                      <FaCircle style={{ color: getStatusColor(project.status) }} />
+                      <span>{project.status}</span>
+                    </div>
+                    <div className="header-value-container">
+                      <div className="header-value">{formatCurrency(project.value)}</div>
+                      <button 
+                        className="index-button" 
+                        onClick={(e) => handleIndexButtonClick(e, project.id)}
+                        aria-label="Project Index"
+                      >
+                        <FaListUl />
+                      </button>
+                      {indexWindowOpen === project.id && (
+                        <div className="floating-index-window" ref={indexWindowRef}>
+                          <h4>Project Index</h4>
+                          <ul>
+                            <li><a href="#overview">Overview</a></li>
+                            <li><a href="#timeline">Timeline</a></li>
+                            <li><a href="#budget">Budget</a></li>
+                            <li><a href="#team">Team Members</a></li>
+                            <li><a href="#documents">Documents</a></li>
+                            <li><a href="#photos">Photos</a></li>
+                            <li><a href="#notes">Notes</a></li>
+                          </ul>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
@@ -194,9 +242,6 @@ const ProjectsList: React.FC = () => {
                 </div>
                 
                 <div className="project-footer">
-                  <div className="project-value">
-                    {formatCurrency(project.value)}
-                  </div>
                   <div className="project-progress">
                     <div className="progress-bar">
                       <div 
@@ -216,16 +261,42 @@ const ProjectsList: React.FC = () => {
           </div>
         </>
       ) : (
-        selectedProject && (
+        selectedProject ? (
           <div className="project-detail-view">
             <div className="detail-header">
               <button className="back-button" onClick={handleBackToList}>
                 ← Back to Projects
               </button>
-              <h2>{selectedProject.name}</h2>
-              <div className="project-status detail-status">
-                <FaCircle style={{ color: getStatusColor(selectedProject.status) }} />
-                <span>{selectedProject.status}</span>
+              <div className="detail-header-left">
+                <h2>{selectedProject.name}</h2>
+                <div className="project-status detail-status">
+                  <FaCircle style={{ color: getStatusColor(selectedProject.status) }} />
+                  <span>{selectedProject.status}</span>
+                </div>
+              </div>
+              <div className="header-value-container">
+                <div className="header-value">{formatCurrency(selectedProject.value)}</div>
+                <button 
+                  className="index-button" 
+                  onClick={(e) => handleIndexButtonClick(e, selectedProject.id)}
+                  aria-label="Project Index"
+                >
+                  <FaListUl />
+                </button>
+                {indexWindowOpen === selectedProject.id && (
+                  <div className="floating-index-window detail-view" ref={indexWindowRef}>
+                    <h4>Project Index</h4>
+                    <ul>
+                      <li><a href="#overview">Overview</a></li>
+                      <li><a href="#timeline">Timeline</a></li>
+                      <li><a href="#budget">Budget</a></li>
+                      <li><a href="#team">Team Members</a></li>
+                      <li><a href="#documents">Documents</a></li>
+                      <li><a href="#photos">Photos</a></li>
+                      <li><a href="#notes">Notes</a></li>
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
             
@@ -233,35 +304,36 @@ const ProjectsList: React.FC = () => {
               <div className="project-info-panel">
                 <div className="info-section">
                   <h3>Project Details</h3>
-                  <div className="info-row">
-                    <span className="info-label">Client:</span>
-                    <span className="info-value">{selectedProject.client}</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="info-label">Address:</span>
-                    <span className="info-value">{selectedProject.address}</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="info-label">Timeline:</span>
-                    <span className="info-value">
-                      {formatDate(selectedProject.startDate)} - {selectedProject.endDate ? formatDate(selectedProject.endDate) : 'Ongoing'}
-                    </span>
-                  </div>
-                  <div className="info-row">
-                    <span className="info-label">Value:</span>
-                    <span className="info-value">{formatCurrency(selectedProject.value)}</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="info-label">Progress:</span>
-                    <div className="detail-progress">
-                      <div className="progress-bar">
+                  <div className="info-grid">
+                    <div>
+                      <strong>Client:</strong> {selectedProject.client}
+                    </div>
+                    <div>
+                      <strong>Address:</strong> {selectedProject.address}
+                    </div>
+                    <div>
+                      <strong>Start Date:</strong> {formatDate(selectedProject.startDate)}
+                    </div>
+                    <div>
+                      <strong>End Date:</strong> {selectedProject.endDate ? formatDate(selectedProject.endDate) : 'TBD'}
+                    </div>
+                    <div className="full-width">
+                      <strong>Progress:</strong>
+                      <div className="detail-progress-container">
                         <div 
-                          className="progress-fill" 
+                          className="detail-progress-bar" 
                           style={{ width: `${selectedProject.progress}%` }}
                         ></div>
+                        <span>{selectedProject.progress}%</span>
                       </div>
-                      <span>{selectedProject.progress}% Complete</span>
                     </div>
+                  </div>
+                </div>
+                
+                <div className="info-section">
+                  <h3>Team Members</h3>
+                  <div className="team-members-count">
+                    <FaUsers /> {selectedProject.teamMembers.length} Members
                   </div>
                 </div>
               </div>
@@ -275,7 +347,7 @@ const ProjectsList: React.FC = () => {
               </div>
             </div>
           </div>
-        )
+        ) : null
       )}
     </div>
   );

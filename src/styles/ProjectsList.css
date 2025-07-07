@@ -54,12 +54,122 @@
   margin-bottom: 15px;
 }
 
+.header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.header-value-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+  gap: 10px;
+  margin-top: 5px;
+  border: 1px solid #e0e0e0;
+  padding: 5px;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.header-value {
+  font-weight: bold;
+  font-size: 1rem;
+  color: #2a5298;
+  margin-right: 5px;
+}
+
+.index-button-container {
+  position: relative;
+}
+
 .project-header h3 {
   margin: 0;
   font-size: 1.2rem;
   color: #2a5298;
   flex: 1;
   padding-right: 10px;
+}
+
+.index-button {
+  background: #ff6b00;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 8px 10px;
+  margin-left: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  min-width: 35px;
+  min-height: 35px;
+  position: relative;
+  z-index: 5;
+}
+
+.index-button:hover {
+  background-color: rgba(42, 82, 152, 0.1);
+}
+
+.floating-index-window {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  padding: 15px;
+  min-width: 200px;
+  z-index: 100;
+  margin-top: 5px;
+}
+
+.floating-index-window.detail-view {
+  top: 100%;
+  right: 0;
+  left: auto;
+}
+
+.floating-index-window h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #333;
+  font-size: 1rem;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+}
+
+.floating-index-window ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.floating-index-window li {
+  margin-bottom: 8px;
+}
+
+.floating-index-window li:last-child {
+  margin-bottom: 0;
+}
+
+.floating-index-window a {
+  color: #2a5298;
+  text-decoration: none;
+  font-size: 0.9rem;
+  display: block;
+  padding: 5px 0;
+  transition: color 0.2s;
+}
+
+.floating-index-window a:hover {
+  color: #1a3366;
+  text-decoration: underline;
 }
 
 .project-status {
@@ -101,7 +211,6 @@
   font-weight: bold;
   font-size: 1.2rem;
   color: #333;
-  margin-bottom: 10px;
 }
 
 .project-progress {
@@ -148,9 +257,16 @@
 .detail-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   margin-bottom: 20px;
   flex-wrap: wrap;
   gap: 15px;
+}
+
+.detail-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .back-button {
@@ -166,8 +282,9 @@
 
 .detail-header h2 {
   margin: 0;
-  flex: 1;
 }
+
+
 
 .detail-status {
   font-size: 1rem;
@@ -210,6 +327,17 @@
 
 .info-value {
   color: #333;
+}
+
+.detail-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.detail-value .info-value {
+  font-weight: bold;
 }
 
 .detail-progress {
