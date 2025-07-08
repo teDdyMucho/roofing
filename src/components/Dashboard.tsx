@@ -5,14 +5,15 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  FaHome, FaChartLine, FaCog, FaSignOutAlt,
-  FaClipboardList, FaCalendarAlt, FaUsers, FaFileInvoiceDollar, 
-  FaRobot, FaSearch, FaBell, FaPaperPlane, FaPlus, FaTimes, FaListUl
+  FaHome, FaChartLine, FaClipboardList, FaUsers, FaCalendarAlt, FaCog, 
+  FaBell, FaSearch, FaPlus, FaTimes, FaListUl, FaRobot, FaComments, FaFileUpload,
+  FaSignOutAlt, FaFileInvoiceDollar, FaPaperPlane
 } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { User as AppUser } from '../services/userService';
 import { Project, fetchProjects, createProject, formatCurrency, formatDate } from '../services/projectService';
 import { ChatMessage, fetchProjectMessages, sendProjectMessage, subscribeToProjectMessages } from '../services/projectChatService';
+import { uploadDocumentForKeywordExtraction, DocumentKeywords } from '../services/documentService';
 import ProjectTeamPanel from './ProjectTeamPanel';
 import ProjectsList from './ProjectsList';
 import '../styles/Dashboard.css';
@@ -30,6 +31,51 @@ const Dashboard: React.FC = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [showCreateProjectForm, setShowCreateProjectForm] = useState(false);
   const [showIndexModal, setShowIndexModal] = useState(false);
+  
+  // State for index form data
+  const [indexFormData, setIndexFormData] = useState({
+    // General Details
+    bidNumber: '',
+    nameOfProject: '',
+    addressOfProject: '',
+    
+    // Project Owner Info
+    ownerOfTheProject: '',
+    ownerEntityAddress: '',
+    department: '',
+    
+    // Bid Deadlines
+    preBidConferenceDt: '',
+    preBidConferenceLocation: '',
+    rfiDue: '',
+    rfsDue: '',
+    bidDue: '',
+    
+    // Submission Type
+    typeOfBidSubmission: '',
+    website: '',
+    bidDeliveryDetails: '',
+    
+    // Bid Proposal Info
+    // TBD
+    
+    // Bid Bond Request
+    estimatedProjectCost: '',
+    startDate: '',
+    duration: '',
+    liquidatedDamage: '',
+    laborWarranty: ''
+  });
+  
+  // State for document upload and processing
+  const [uploadedDocument, setUploadedDocument] = useState<File | null>(null);
+  const [isProcessingDocument, setIsProcessingDocument] = useState(false);
+  const [documentKeywords, setDocumentKeywords] = useState<string[]>([]);
+  const [extractedFields, setExtractedFields] = useState<Record<string, string>>({});
+  const [documentError, setDocumentError] = useState<string | null>(null);
+  
+  // State for active index tab
+  const [activeIndexTab, setActiveIndexTab] = useState('generalDetails');
   
   // New project form state
   const [newProject, setNewProject] = useState({
@@ -234,6 +280,189 @@ const Dashboard: React.FC = () => {
     { id: '6', name: 'Jessica Martinez', role: 'Admin Assistant', status: 'online' as const }
   ];
   
+  // Handle index form input changes
+  const handleIndexFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, field: keyof typeof indexFormData) => {
+    setIndexFormData(prev => ({
+      ...prev,
+      [field]: e.target.value
+    }));
+  };
+  
+  // Handle document upload and keyword extraction
+  const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      setUploadedDocument(file);
+      setDocumentError(null);
+      
+      // Only process the document if we have a selected project
+      if (selectedProjectId && currentUser) {
+        setIsProcessingDocument(true);
+        try {
+          const result = await uploadDocumentForKeywordExtraction(
+            file,
+            selectedProjectId,
+            currentUser.id
+          );
+          
+          setDocumentKeywords(result.keywords);
+          setExtractedFields(result.extracted_fields || {});
+          
+          console.log('Document keywords extracted:', result.keywords);
+          console.log('Extracted fields:', result.extracted_fields);
+          
+          // Update the form data with extracted fields
+          if (result.extracted_fields) {
+            // Create a mapping between API field names and form field names
+            const fieldMapping: Record<string, keyof typeof indexFormData> = {
+              'bid_number': 'bidNumber',
+              'name_of_project': 'nameOfProject',
+              'address_of_project': 'addressOfProject',
+              'owner_of_the_project': 'ownerOfTheProject',
+              'owner_entity_address': 'ownerEntityAddress',
+              'department': 'department',
+              'pre_bid_conference_dt': 'preBidConferenceDt',
+              'pre_bid_conference_location': 'preBidConferenceLocation',
+              'rfi_due': 'rfiDue',
+              'rfs_due': 'rfsDue',
+              'bid_due': 'bidDue',
+              'type_of_bid_submission': 'typeOfBidSubmission',
+              'website': 'website',
+              'bid_delivery_details': 'bidDeliveryDetails',
+              'estimated_project_cost': 'estimatedProjectCost',
+              'start_date': 'startDate',
+              'duration': 'duration',
+              'liquidated_damage': 'liquidatedDamage',
+              'labor_warranty': 'laborWarranty'
+            };
+            
+            // Create a new form data object with the extracted fields
+            const updatedFormData = { ...indexFormData };
+            
+            // Populate form fields with extracted data
+            Object.entries(result.extracted_fields).forEach(([apiField, value]) => {
+              const formField = fieldMapping[apiField];
+              if (formField && value) {
+                updatedFormData[formField] = value;
+              }
+            });
+            
+            // Update the form data
+            setIndexFormData(updatedFormData);
+          }
+        } catch (error) {
+          console.error('Error processing document:', error);
+          setDocumentError('Failed to process document. Please try again.');
+        } finally {
+          setIsProcessingDocument(false);
+        }
+      } else {
+        // If no project is selected, we'll just store the file and process it when saving
+        console.log('Document will be processed when saving with project context');
+      }
+    }
+  };
+  
+  // Handle saving index form data
+  const handleSaveIndexForm = async () => {
+    console.log('Saving index form data:', indexFormData);
+    
+    // Process document if it exists and wasn't processed yet
+    if (uploadedDocument && documentKeywords.length === 0 && selectedProjectId && currentUser) {
+      setIsProcessingDocument(true);
+      try {
+        const result = await uploadDocumentForKeywordExtraction(
+          uploadedDocument,
+          selectedProjectId,
+          currentUser.id
+        );
+        
+        setDocumentKeywords(Array.isArray(result.keywords) ? result.keywords : []);
+        setExtractedFields(result.extracted_fields || {});
+        console.log('Document keywords extracted:', Array.isArray(result.keywords) ? result.keywords : []);
+        console.log('Extracted fields:', result.extracted_fields);
+        
+        // Update the form data with extracted fields before saving
+        if (result.extracted_fields) {
+          // Create a mapping between API field names and form field names
+          const fieldMapping: Record<string, keyof typeof indexFormData> = {
+            'bid_number': 'bidNumber',
+            'name_of_project': 'nameOfProject',
+            'address_of_project': 'addressOfProject',
+            'owner_of_the_project': 'ownerOfTheProject',
+            'owner_entity_address': 'ownerEntityAddress',
+            'department': 'department',
+            'pre_bid_conference_dt': 'preBidConferenceDt',
+            'pre_bid_conference_location': 'preBidConferenceLocation',
+            'rfi_due': 'rfiDue',
+            'rfs_due': 'rfsDue',
+            'bid_due': 'bidDue',
+            'type_of_bid_submission': 'typeOfBidSubmission',
+            'website': 'website',
+            'bid_delivery_details': 'bidDeliveryDetails',
+            'estimated_project_cost': 'estimatedProjectCost',
+            'start_date': 'startDate',
+            'duration': 'duration',
+            'liquidated_damage': 'liquidatedDamage',
+            'labor_warranty': 'laborWarranty'
+          };
+          
+          
+          // Create a new form data object with the extracted fields
+          const updatedFormData = { ...indexFormData };
+          
+          // Populate form fields with extracted data
+          Object.entries(result.extracted_fields).forEach(([apiField, value]) => {
+            const formField = fieldMapping[apiField];
+            if (formField && value) {
+              updatedFormData[formField] = value;
+            }
+          });
+          
+          // Update the form data
+          setIndexFormData(updatedFormData);
+        }
+        
+        // Here you would typically send the form data and document keywords to your backend
+        // For demonstration, we'll just log the data
+        console.log('Form data and keywords ready for saving:', {
+          formData: indexFormData,
+          document: uploadedDocument.name,
+          keywords: result.keywords,
+          extractedFields: result.extracted_fields
+        });
+        
+      } catch (error) {
+        console.error('Error processing document:', error);
+        setDocumentError('Failed to process document. Saving form data only.');
+        
+        // Still save the form data even if document processing failed
+        console.log('Saving form data only:', indexFormData);
+      } finally {
+        setIsProcessingDocument(false);
+      }
+    } else {
+      // If no document or already processed, just save the form data
+      console.log('Saving form data:', indexFormData);
+      if (documentKeywords.length > 0) {
+        console.log('With previously extracted keywords:', documentKeywords);
+        console.log('With previously extracted fields:', extractedFields);
+      }
+    }
+    
+    // Close the modal
+    setShowIndexModal(false);
+    
+    // Show a success message
+    alert('Index data saved successfully!');
+    
+    // Reset document states for next time
+    setUploadedDocument(null);
+    setDocumentKeywords([]);
+    setExtractedFields({});
+    setDocumentError(null);
+  };
+
   /**
    * Handle user logout
    * Attempts to log out the user and navigates to landing page regardless of success/failure
@@ -439,74 +668,337 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       )}
-      
       {/* Project Index Modal */}
       {showIndexModal && (
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
               <h2>Project Index</h2>
+              <div className="modal-header-actions">
+                <div className="document-upload-container">
+                  <input type="file" id="document-upload" style={{ display: 'none' }} onChange={handleDocumentUpload} accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" disabled={isProcessingDocument} />
+                  <label htmlFor="document-upload" className={`upload-button ${isProcessingDocument ? 'disabled' : ''}`}>
+                    {isProcessingDocument ? (<><span className="spinner"></span> Processing...</>) : (<><FaFileUpload /> Upload Document</>)}
+                  </label>
+                </div>
+                {uploadedDocument && (<span className="uploaded-filename" title={uploadedDocument.name}>{uploadedDocument.name}</span>)}
+                {documentError && (<span className="document-error">{documentError}</span>)}
+              </div>
               <button className="close-button" onClick={() => setShowIndexModal(false)}>
                 <FaTimes />
               </button>
             </div>
             
             <div className="modal-body index-modal-content">
-              <div className="project-info-grid">
-                <div className="info-row">
-                  <div className="info-label">Name of Project:</div>
-                  <div className="info-value">Southland Commercial Complex</div>
+              {documentKeywords.length > 0 && (
+                <div className="document-keywords-container">
+                  <h4>Extracted Keywords</h4>
+                  <div className="keywords-list">
+                    {documentKeywords.map((keyword, index) => (
+                      <span key={index} className="keyword-tag">{keyword}</span>
+                    ))}
+                  </div>
                 </div>
-                <div className="info-row">
-                  <div className="info-label">Address:</div>
-                  <div className="info-value">123 Main Street, Austin, TX 78701</div>
+              )}
+              <div className="tabs-container">
+                <div className="tabs-navigation">
+                  <button 
+                    className={`tab-button ${activeIndexTab === 'generalDetails' ? 'active' : ''}`}
+                    onClick={() => setActiveIndexTab('generalDetails')}
+                  >
+                    General Details
+                  </button>
+                  <button 
+                    className={`tab-button ${activeIndexTab === 'ownerInfo' ? 'active' : ''}`}
+                    onClick={() => setActiveIndexTab('ownerInfo')}
+                  >
+                    Project Owner Info
+                  </button>
+                  <button 
+                    className={`tab-button ${activeIndexTab === 'bidDeadlines' ? 'active' : ''}`}
+                    onClick={() => setActiveIndexTab('bidDeadlines')}
+                  >
+                    Bid Deadlines
+                  </button>
+                  <button 
+                    className={`tab-button ${activeIndexTab === 'submissionType' ? 'active' : ''}`}
+                    onClick={() => setActiveIndexTab('submissionType')}
+                  >
+                    Submission Type
+                  </button>
+                  <button 
+                    className={`tab-button ${activeIndexTab === 'proposalInfo' ? 'active' : ''}`}
+                    onClick={() => setActiveIndexTab('proposalInfo')}
+                  >
+                    Bid Proposal Info
+                  </button>
+                  <button 
+                    className={`tab-button ${activeIndexTab === 'bondRequest' ? 'active' : ''}`}
+                    onClick={() => setActiveIndexTab('bondRequest')}
+                  >
+                    Bid Bond Request
+                  </button>
                 </div>
-                <div className="info-row">
-                  <div className="info-label">Owner:</div>
-                  <div className="info-value">Southland Properties LLC</div>
-                </div>
-                <div className="info-row">
-                  <div className="info-label">Owner Address:</div>
-                  <div className="info-value">456 Corporate Drive, Suite 300, Austin, TX 78730</div>
-                </div>
-                <div className="info-row">
-                  <div className="info-label">Department:</div>
-                  <div className="info-value">Commercial Roofing</div>
-                </div>
-                <div className="info-row">
-                  <div className="info-label">Pre-Bid Conference D/T:</div>
-                  <div className="info-value">July 15, 2025 - 10:00 AM</div>
-                </div>
-                <div className="info-row">
-                  <div className="info-label">Pre-Bid Conference Location:</div>
-                  <div className="info-value">123 Main Street, Austin, TX - Conference Room B</div>
-                </div>
-                <div className="info-row">
-                  <div className="info-label">Request for Information Due:</div>
-                  <div className="info-value">July 20, 2025</div>
-                </div>
-                <div className="info-row">
-                  <div className="info-label">Request for Substitution Due:</div>
-                  <div className="info-value">July 22, 2025</div>
-                </div>
-                <div className="info-row">
-                  <div className="info-label">Bid Due:</div>
-                  <div className="info-value">July 30, 2025 - 5:00 PM</div>
+                
+                {/* Tab Content */}
+                <div className="tab-content">
+                  {/* General Details Tab */}
+                  {activeIndexTab === 'generalDetails' && (
+                    <div className="project-info-grid">
+                      <div className="info-row">
+                        <div className="info-label">Bid Number:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.bidNumber} 
+                            onChange={(e) => handleIndexFormChange(e, 'bidNumber')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Name of Project:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.nameOfProject} 
+                            onChange={(e) => handleIndexFormChange(e, 'nameOfProject')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Address of Project:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.addressOfProject} 
+                            onChange={(e) => handleIndexFormChange(e, 'addressOfProject')}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Project Owner Info Tab */}
+                  {activeIndexTab === 'ownerInfo' && (
+                    <div className="project-info-grid">
+                      <div className="info-row">
+                        <div className="info-label">Owner of the Project:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.ownerOfTheProject} 
+                            onChange={(e) => handleIndexFormChange(e, 'ownerOfTheProject')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Owner Entity Address:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.ownerEntityAddress} 
+                            onChange={(e) => handleIndexFormChange(e, 'ownerEntityAddress')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Department:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.department} 
+                            onChange={(e) => handleIndexFormChange(e, 'department')}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Bid Deadlines Tab */}
+                  {activeIndexTab === 'bidDeadlines' && (
+                    <div className="project-info-grid">
+                      <div className="info-row">
+                        <div className="info-label">Pre-Bid Conference D/T:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.preBidConferenceDt} 
+                            onChange={(e) => handleIndexFormChange(e, 'preBidConferenceDt')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Pre-Bid Conference Location:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.preBidConferenceLocation} 
+                            onChange={(e) => handleIndexFormChange(e, 'preBidConferenceLocation')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">RFI Due:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.rfiDue} 
+                            onChange={(e) => handleIndexFormChange(e, 'rfiDue')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">RFS Due:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.rfsDue} 
+                            onChange={(e) => handleIndexFormChange(e, 'rfsDue')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Bid Due:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.bidDue} 
+                            onChange={(e) => handleIndexFormChange(e, 'bidDue')}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Submission Type Tab */}
+                  {activeIndexTab === 'submissionType' && (
+                    <div className="project-info-grid">
+                      <div className="info-row">
+                        <div className="info-label">Bid Submission Type:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.typeOfBidSubmission} 
+                            onChange={(e) => handleIndexFormChange(e, 'typeOfBidSubmission')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Submission Website:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.website} 
+                            onChange={(e) => handleIndexFormChange(e, 'website')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Bid Delivery Details:</div>
+                        <div className="info-value">
+                          <textarea 
+                            className="index-input" 
+                            value={indexFormData.bidDeliveryDetails} 
+                            onChange={(e) => handleIndexFormChange(e, 'bidDeliveryDetails')}
+                            rows={5}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Bid Proposal Info Tab */}
+                  {activeIndexTab === 'proposalInfo' && (
+                    <div className="project-info-grid">
+                      <div className="info-row">
+                        <div className="info-label">Bid Proposal Information:</div>
+                        <div className="info-value">
+                          <div className="tbd-message">To be determined</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Bid Bond Request Tab */}
+                  {activeIndexTab === 'bondRequest' && (
+                    <div className="project-info-grid">
+                      <div className="info-row">
+                        <div className="info-label">Estimated Project Cost:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.estimatedProjectCost} 
+                            onChange={(e) => handleIndexFormChange(e, 'estimatedProjectCost')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Estimated Start Date:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.startDate} 
+                            onChange={(e) => handleIndexFormChange(e, 'startDate')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Estimated Project Duration:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.duration} 
+                            onChange={(e) => handleIndexFormChange(e, 'duration')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Liquidated Damage:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.liquidatedDamage} 
+                            onChange={(e) => handleIndexFormChange(e, 'liquidatedDamage')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Labor Warranty (years):</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.laborWarranty} 
+                            onChange={(e) => handleIndexFormChange(e, 'laborWarranty')}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-              
-              <div className="modal-section-divider"></div>
-              
-              <h3>Project Sections</h3>
-              <ul className="index-links-list">
-                <li><a href="#overview" onClick={() => setShowIndexModal(false)}>Overview</a></li>
-                <li><a href="#timeline" onClick={() => setShowIndexModal(false)}>Timeline</a></li>
-                <li><a href="#budget" onClick={() => setShowIndexModal(false)}>Budget</a></li>
-                <li><a href="#team" onClick={() => setShowIndexModal(false)}>Team Members</a></li>
-                <li><a href="#documents" onClick={() => setShowIndexModal(false)}>Documents</a></li>
-                <li><a href="#photos" onClick={() => setShowIndexModal(false)}>Photos</a></li>
-                <li><a href="#notes" onClick={() => setShowIndexModal(false)}>Notes</a></li>
-              </ul>
+              <div className="modal-footer">
+                <button className="save-button" onClick={handleSaveIndexForm}>
+                  Save
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -805,12 +1297,14 @@ const Dashboard: React.FC = () => {
                         
                         <div className="info-group">
                           <h4>Value:</h4>
-                          <div className="header-value-container">
-                            {selectedProjectId && (
-                              <div className="header-value">{formatCurrency(
-                                projects.find(project => project.id === selectedProjectId)?.value || null
-                              )}</div>
-                            )}
+                          <div className="value-and-index-container">
+                            <div className="header-value-container">
+                              {selectedProjectId && (
+                                <div className="header-value">{formatCurrency(
+                                  projects.find(project => project.id === selectedProjectId)?.value || null
+                                )}</div>
+                              )}
+                            </div>
                             <button 
                               className="index-button" 
                               onClick={(e) => {
