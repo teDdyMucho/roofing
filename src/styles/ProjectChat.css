@@ -106,7 +106,12 @@
   margin-top: 8px;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
+}
+
+.attachment-container {
+  display: flex;
+  flex-direction: column;
 }
 
 .attachment {
@@ -125,12 +130,105 @@
   background-color: #dee2e6;
 }
 
+.image-attachment {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 200px;
+}
+
+.message-image {
+  max-width: 200px;
+  max-height: 150px;
+  border-radius: 6px;
+  cursor: pointer;
+  object-fit: cover;
+  border: 1px solid #e0e0e0;
+}
+
+.image-name {
+  font-size: 0.8rem;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
 .message-input-container {
   display: flex;
+  flex-direction: column;
   padding: 15px;
   border-top: 1px solid #e0e0e0;
   background-color: #f8f9fa;
   border-radius: 0 0 8px 8px;
+}
+
+.message-input-row {
+  display: flex;
+  width: 100%;
+}
+
+.selected-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 10px;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.image-preview-container {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.image-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.file-preview {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background-color: #e9ecef;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #2a5298;
+}
+
+.file-name {
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.remove-file-button {
+  background: rgba(255, 255, 255, 0.7) !important;
+  color: #dc3545 !important;
+  width: 20px !important;
+  height: 20px !important;
+  padding: 0 !important;
+  font-size: 0.7rem !important;
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  margin: 0 !important;
+}
+
+.file-preview .remove-file-button {
+  position: static;
+  margin-left: 5px !important;
 }
 
 .message-input-container input {
@@ -165,6 +263,11 @@
   background-color: #e9ecef;
 }
 
+.message-input-container button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .send-button {
   background-color: #2a5298 !important;
   color: white !important;
@@ -172,4 +275,31 @@
 
 .send-button:hover {
   background-color: #1e3c72 !important;
+}
+
+/* Loading, error, and empty state styles */
+.loading-messages,
+.error-message,
+.no-messages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #666;
+  font-size: 1rem;
+  text-align: center;
+  padding: 20px;
+}
+
+.loading-messages {
+  color: #2a5298;
+}
+
+.error-message {
+  color: #dc3545;
+}
+
+.no-messages {
+  color: #6c757d;
+  font-style: italic;
 }

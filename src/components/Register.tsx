@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaUser, FaLock, FaEnvelope, FaImage, FaUserTag, FaHome } from 'react-icons/fa';
+import { FaUser, FaLock, FaEnvelope, FaImage, FaUserTag, FaHome, FaArrowLeft } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/Register.css';
@@ -147,6 +147,12 @@ const Register: React.FC = () => {
 
   return (
     <div className="register-container">
+      <button 
+        className="back-button" 
+        onClick={() => navigate('/landing')}
+      >
+        <FaArrowLeft /> Back to Landing
+      </button>
       <div className="company-info">
         <div className="logo">
           <FaHome className="logo-icon" />

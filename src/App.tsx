@@ -54,10 +54,10 @@ const AppContent = () => {
   
   return (
     <Routes>
-      {/* Initial role selection screen */}
+      {/* Initial role selection screen - redirect to dashboard if already authenticated */}
       <Route 
         path="/" 
-        element={<UserRoleSelection />} 
+        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <UserRoleSelection />} 
       />
       
       {/* Employee landing page */}
@@ -86,7 +86,8 @@ const AppContent = () => {
         element={<ProtectedRoute element={<UserSettings />} />} 
       />
 
-      <Route path="/SouthlandRoofing" element={<FlashCoHome />} />
+      {/* FlashCo routes - could also be protected if needed */}
+      <Route path="/SouthlandRoofing" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <FlashCoHome />} />
       <Route path="/product/:id" element={<ProductDetail />} />
       <Route path="/category/:slug" element={<CategoryPage />} />
       <Route path="/products" element={<ProductList products={sampleProducts} />} />

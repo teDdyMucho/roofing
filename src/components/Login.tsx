@@ -3,7 +3,7 @@
  * Handles user authentication and login process
  */
 import React, { useState, useEffect } from 'react';
-import { FaUser, FaLock, FaHome, FaEnvelope } from 'react-icons/fa';
+import { FaUser, FaLock, FaHome, FaEnvelope, FaArrowLeft } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/Login.css';
@@ -108,9 +108,19 @@ const Login: React.FC = () => {
   const redirectToRegister = () => {
     navigate('/register');
   };
+  
+  const redirectToLanding = () => {
+    navigate('/landing');
+  };
 
   return (
     <div className="login-container">
+      <button 
+        className="back-button" 
+        onClick={() => navigate('/landing')}
+      >
+        <FaArrowLeft /> Back to Landing
+      </button>
       <div className="company-info">
         <div className="logo">
           <FaHome className="logo-icon" />

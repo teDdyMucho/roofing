@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaHome, FaTools, FaClipboardCheck, FaUserShield, FaArrowRight, FaPhone, FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaHome, FaTools, FaClipboardCheck, FaUserShield, FaArrowRight, FaPhone, FaEnvelope, FaMapMarkerAlt, FaArrowLeft } from 'react-icons/fa';
 import '../styles/Landing.css';
 
 const Landing: React.FC = () => {
@@ -8,6 +8,14 @@ const Landing: React.FC = () => {
 
   return (
     <div className="landing-page">
+      {/* Back button */}
+      <button 
+        className="back-button" 
+        onClick={() => navigate('/')}
+      >
+        <FaArrowLeft /> Back to Role Selection
+      </button>
+      
       {/* Header/Navigation */}
       <header className="header">
         <div className="header-left">
