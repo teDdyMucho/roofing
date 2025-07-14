@@ -392,6 +392,14 @@
   box-shadow: var(--shadow);
 }
 
+/* Calendar Tab Container */
+.calendar-tab-container {
+  flex: 1;
+  padding: 1rem 2rem;
+  background-color: var(--gray-50);
+  overflow-y: auto;
+}
+
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -2735,6 +2743,42 @@ form {
   margin: 0;
   font-weight: 500;
   color: #555;
+}
+
+.project-value {
+  margin-top: 5px;
+  font-weight: 600;
+  color: #2c7be5;
+}
+
+.project-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 5px;
+}
+
+.delete-project-btn {
+  background: none;
+  border: none;
+  color: #e63757;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+}
+
+.delete-project-btn:hover {
+  background-color: rgba(230, 55, 87, 0.1);
+  opacity: 1;
+}
+
+.project-item:hover .delete-project-btn {
+  opacity: 1;
 }
 
 /* Horizontal scrolling sections - keeping for reference */

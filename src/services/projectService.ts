@@ -151,9 +151,8 @@ export const formatCurrency = (value: number | null): string => {
  */
 export const formatDate = (dateString: string | null): string => {
   if (!dateString) return 'N/A';
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 };
+
+

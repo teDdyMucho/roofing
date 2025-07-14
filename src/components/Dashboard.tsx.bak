@@ -287,7 +287,7 @@ const Dashboard: React.FC = () => {
   /**
    * Notification data
    */
-  const notificationItems = [
+  const notifications = [
     { id: 1, message: 'New estimate request from Lee Residence', time: '2 hours ago' },
     { id: 2, message: 'Material delivery scheduled for Smith project', time: '5 hours ago' },
     { id: 3, message: 'Weather alert: Rain expected tomorrow', time: '1 day ago' }
@@ -548,7 +548,7 @@ const Dashboard: React.FC = () => {
    * Handle sending messages to AI assistants
    * @param aiType - The type of AI assistant ('estimating' or 'admin')
    */
-  const handleSendAiMessage = useCallback((aiType: string) => {
+  const handleSendMessage = useCallback((aiType: string) => {
     if (aiType === 'estimating') {
       if (estimatingAiMessage.trim() === '') return;
       
@@ -574,54 +574,6 @@ const Dashboard: React.FC = () => {
     } else if (aiType === 'admin') {
       if (adminAiMessage.trim() === '') return;
       
-      // Add user message to chat
-      setAdminAiChat(prev => [...prev, { 
-        sender: 'user', 
-        message: adminAiMessage 
-      }]);
-      
-      // Clear input field
-      setAdminAiMessage('');
-      
-      // Simulate AI response after a short delay
-      setTimeout(() => {
-        setAdminAiChat(prev => [
-          ...prev, 
-          { 
-            sender: 'ai', 
-            message: `I've analyzed your schedule and found optimal times for the team meeting. Would Tuesday at 10am or Thursday at 2pm work better?` 
-          }
-        ]);
-      }, 1000);
-    }
-  }, [estimatingAiMessage, adminAiMessage]);
-  
-  // Use the notification items defined earlier
-  const notifications = notificationItems;
-  
-  // Use the AI message handler defined earlier
-  const handleSendMessage = useCallback((messageType: 'estimating' | 'admin') => {
-    if (messageType === 'estimating' && estimatingAiMessage.trim()) {
-      // Add user message to chat
-      setEstimatingAiChat(prev => [...prev, { 
-        sender: 'user', 
-        message: estimatingAiMessage 
-      }]);
-      
-      // Clear input field
-      setEstimatingAiMessage('');
-      
-      // Simulate AI response after a short delay
-      setTimeout(() => {
-        setEstimatingAiChat(prev => [
-          ...prev, 
-          { 
-            sender: 'ai', 
-            message: `Based on your roof dimensions, I estimate you'll need approximately 24 squares of shingles and 10 rolls of underlayment.` 
-          }
-        ]);
-      }, 1000);
-    } else if (messageType === 'admin' && adminAiMessage.trim()) {
       // Add user message to chat
       setAdminAiChat(prev => [...prev, { 
         sender: 'user', 
@@ -763,7 +715,6 @@ const Dashboard: React.FC = () => {
             </div>
             
             <div className="modal-body index-modal-content">
-              {/* Document Keywords Section */}
               {documentKeywords.length > 0 && (
                 <div className="document-keywords-container">
                   <h4>Extracted Keywords</h4>
@@ -775,7 +726,6 @@ const Dashboard: React.FC = () => {
                 </div>
               )}
               
-              {/* Project Database Record Section */}
               {selectedProjectId && (
                 <div className="project-data-container">
                   <h3>Project Database Record</h3>
@@ -810,23 +760,269 @@ const Dashboard: React.FC = () => {
                       );
                     })()} 
                   </div>
-                  
-                  {/* Delete Project Button */}
-                  <div className="delete-project-container">
-                    <button 
-                      className="delete-project-button" 
-                      onClick={(e) => handleDeleteProject(e, selectedProjectId)}
-                    >
-                      <FaTrash /> Delete Project
-                    </button>
-                  </div>
                 </div>
               )}
-            </div>
-            <div className="modal-footer">
-              <button className="save-button" onClick={handleSaveIndexForm}>
-                Save
-              </button>
+              
+              <div className="tab-content">
+                {/* General Details Tab */}
+                {activeIndexTab === 'generalDetails' && (
+                  {/* General Details Tab */}
+                  {activeIndexTab === 'generalDetails' && (
+                    <div className="project-info-grid">
+                      <div className="info-row">
+                        <div className="info-label">Bid Number:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.bidNumber} 
+                            onChange={(e) => handleIndexFormChange(e, 'bidNumber')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Name of Project:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.nameOfProject} 
+                            onChange={(e) => handleIndexFormChange(e, 'nameOfProject')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Address of Project:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.addressOfProject} 
+                            onChange={(e) => handleIndexFormChange(e, 'addressOfProject')}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Project Owner Info Tab */}
+                  {activeIndexTab === 'ownerInfo' && (
+                    <div className="project-info-grid">
+                      <div className="info-row">
+                        <div className="info-label">Owner of the Project:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.ownerOfTheProject} 
+                            onChange={(e) => handleIndexFormChange(e, 'ownerOfTheProject')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Owner Entity Address:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.ownerEntityAddress} 
+                            onChange={(e) => handleIndexFormChange(e, 'ownerEntityAddress')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Department:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.department} 
+                            onChange={(e) => handleIndexFormChange(e, 'department')}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Bid Deadlines Tab */}
+                  {activeIndexTab === 'bidDeadlines' && (
+                    <div className="project-info-grid">
+                      <div className="info-row">
+                        <div className="info-label">Pre-Bid Conference D/T:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.preBidConferenceDt} 
+                            onChange={(e) => handleIndexFormChange(e, 'preBidConferenceDt')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Pre-Bid Conference Location:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.preBidConferenceLocation} 
+                            onChange={(e) => handleIndexFormChange(e, 'preBidConferenceLocation')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">RFI Due:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.rfiDue} 
+                            onChange={(e) => handleIndexFormChange(e, 'rfiDue')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">RFS Due:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.rfsDue} 
+                            onChange={(e) => handleIndexFormChange(e, 'rfsDue')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Bid Due:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.bidDue} 
+                            onChange={(e) => handleIndexFormChange(e, 'bidDue')}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Submission Type Tab */}
+                  {activeIndexTab === 'submissionType' && (
+                    <div className="project-info-grid">
+                      <div className="info-row">
+                        <div className="info-label">Bid Submission Type:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.typeOfBidSubmission} 
+                            onChange={(e) => handleIndexFormChange(e, 'typeOfBidSubmission')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Submission Website:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.website} 
+                            onChange={(e) => handleIndexFormChange(e, 'website')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Bid Delivery Details:</div>
+                        <div className="info-value">
+                          <textarea 
+                            className="index-input" 
+                            value={indexFormData.bidDeliveryDetails} 
+                            onChange={(e) => handleIndexFormChange(e, 'bidDeliveryDetails')}
+                            rows={5}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Bid Proposal Info Tab */}
+                  {activeIndexTab === 'proposalInfo' && (
+                    <div className="project-info-grid">
+                      <div className="info-row">
+                        <div className="info-label">Bid Proposal Information:</div>
+                        <div className="info-value">
+                          <div className="tbd-message">To be determined</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Bid Bond Request Tab */}
+                  {activeIndexTab === 'bondRequest' && (
+                    <div className="project-info-grid">
+                      <div className="info-row">
+                        <div className="info-label">Estimated Project Cost:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.estimatedProjectCost} 
+                            onChange={(e) => handleIndexFormChange(e, 'estimatedProjectCost')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Estimated Start Date:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.startDate} 
+                            onChange={(e) => handleIndexFormChange(e, 'startDate')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Estimated Project Duration:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.duration} 
+                            onChange={(e) => handleIndexFormChange(e, 'duration')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Liquidated Damage:</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.liquidatedDamage} 
+                            onChange={(e) => handleIndexFormChange(e, 'liquidatedDamage')}
+                          />
+                        </div>
+                      </div>
+                      <div className="info-row">
+                        <div className="info-label">Labor Warranty (years):</div>
+                        <div className="info-value">
+                          <input 
+                            type="text" 
+                            className="index-input" 
+                            value={indexFormData.laborWarranty} 
+                            onChange={(e) => handleIndexFormChange(e, 'laborWarranty')}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button className="save-button" onClick={handleSaveIndexForm}>
+                  Save
+                </button>
+              </div>
             </div>
           </div>
         </div>

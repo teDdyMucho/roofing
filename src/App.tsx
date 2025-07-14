@@ -5,7 +5,6 @@ import { supabase } from './lib/supabase';
 import './App.css';
 
 
-
 // Component imports
 import Login from './components/Login';
 import Register from './components/Register';
@@ -18,6 +17,7 @@ import ProductList from './components/FlashCo/ProductList/ProductList';
 import ProductGrid from './components/FlashCo/ProductGrid/ProductGrid';
 import ProductDetail from './components/FlashCo/ProductDetail';
 import CategoryPage from './components/FlashCo/CategoryPage';
+import CalendarPage from './components/Calendar/CalendarPage';
 
 // Context imports
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -84,6 +84,10 @@ const AppContent = () => {
       <Route 
         path="/user-settings" 
         element={<ProtectedRoute element={<UserSettings />} />} 
+      />
+      <Route 
+        path="/calendar" 
+        element={<ProtectedRoute element={<CalendarPage />} />} 
       />
 
       {/* FlashCo routes - could also be protected if needed */}
