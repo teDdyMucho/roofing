@@ -1,0 +1,416 @@
+/* Project Navigation Bar Styles */
+.project-nav-bar {
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin: 16px 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+  -webkit-tap-highlight-color: transparent; /* Removes tap highlight on mobile */
+}
+
+.project-nav-bar::-webkit-scrollbar {
+  height: 6px;
+}
+
+.project-nav-bar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.project-nav-bar::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 20px;
+}
+
+.project-nav-items {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.project-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  min-width: 80px;
+  transition: color 0.2s ease;
+  position: relative;
+  background-color: transparent;
+}
+
+.project-nav-item:not(.active):hover {
+  background-color: rgba(243, 244, 246, 0.5);
+}
+
+.project-nav-item.active {
+  position: relative;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.project-nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40%;
+  height: 3px;
+  background-color: #1a56db;
+  border-radius: 3px;
+}
+
+.nav-item-icon {
+  font-size: 1.25rem;
+  margin-bottom: 6px;
+  color: #6b7280;
+  transition: color 0.2s ease;
+}
+
+.project-nav-item.active .nav-item-icon {
+  color: #1a56db;
+}
+
+.project-nav-item:hover .nav-item-icon {
+  color: #1a56db;
+}
+
+.nav-item-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #4b5563;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.project-nav-item.active .nav-item-label {
+  color: #1a56db;
+  font-weight: 600;
+}
+
+.project-nav-item:hover .nav-item-label {
+  color: #1a56db;
+}
+
+.with-bottom-line {
+  position: relative;
+  padding-bottom: 20px;
+}
+
+.with-bottom-line::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  background-color: rgba(75, 74, 73, 0.2); /* light, soft line */
+}
+
+
+/* Bottom Navigation Buttons */
+.nav-bottom-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 20px;
+  width: 100%;
+  padding: 10px 15px;
+  border-radius: 4px;
+}
+
+.nav-bottom-progress {
+  display: flex;
+  align-items: left;
+  justify-content: left;
+  margin-top: 15px;
+  width: 100%;
+}
+
+.progress-button {
+  display: flex;
+  align-items: left;
+  justify-content: left;
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  color: #374151;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.progress-button:hover {
+  background-color: #e5e7eb;
+}
+
+.progress-icon {
+  margin-right: 8px;
+  font-size: 0.9rem;
+}
+
+.nav-bottom-button {
+  background: none;
+  border: none;
+  color: black;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+}
+
+.nav-bottom-button:hover {
+  text-decoration: underline;
+}
+
+.nav-bottom-separator {
+  color: black;
+  margin: 0 10px;
+  font-weight: 300;
+}
+
+/* Progress Dropdown Styles */
+#progress-button-container {
+  position: relative;
+}
+
+.progress-dropdown-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+}
+
+.progress-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 320px;
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 1100;
+  animation: dropdownFadeIn 0.2s ease-out;
+  border: 1px solid #e5e7eb;
+}
+
+@keyframes dropdownFadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.progress-dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
+
+.progress-dropdown-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #111827;
+  font-weight: 600;
+}
+
+.progress-dropdown-close {
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.progress-dropdown-close:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.progress-dropdown-content {
+  padding: 16px;
+}
+
+.progress-category {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.progress-category:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.progress-category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.progress-category-header h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #374151;
+  font-weight: 600;
+}
+
+.progress-percentage {
+  font-weight: 600;
+  color: #1a56db;
+  font-size: 0.85rem;
+}
+
+.progress-bar {
+  height: 6px;
+  background-color: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: #1a56db;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.progress-edit-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #e5e7eb;
+  outline: none;
+  border-radius: 2px;
+}
+
+.progress-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #1a56db;
+  cursor: pointer;
+}
+
+.progress-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #1a56db;
+  cursor: pointer;
+  border: none;
+}
+
+.progress-save-btn {
+  background-color: #1a56db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.progress-save-btn:hover {
+  background-color: #1e429f;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .project-nav-bar {
+    padding: 8px;
+  }
+  
+  .project-nav-item {
+    padding: 10px 12px;
+    min-width: 70px;
+  }
+  
+  .nav-item-icon {
+    font-size: 1.1rem;
+  }
+  
+  .nav-item-label {
+    font-size: 0.7rem;
+  }
+  
+  .nav-bottom-buttons {
+    margin-top: 12px;
+    padding: 8px 12px;
+  }
+  
+  .nav-bottom-button {
+    font-size: 0.85rem;
+  }
+  
+  /* Progress dropdown responsive styles */
+  .progress-dropdown-panel {
+    width: calc(100vw - 32px);
+    left: 50%;
+    transform: translateX(-50%);
+    max-height: 80vh;
+  }
+  
+  .progress-dropdown-content {
+    padding: 12px;
+  }
+  
+  .progress-category {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+  }
+  
+  /* Larger touch targets for mobile */
+  .progress-slider {
+    height: 6px;
+  }
+  
+  .progress-slider::-webkit-slider-thumb,
+  .progress-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+  }
+  
+  .progress-save-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+}

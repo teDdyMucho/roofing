@@ -1,15 +1,8 @@
-/**
- * Authentication Context
- * Provides authentication state and methods throughout the application
- */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
-import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { userService, User as AppUser } from '../services/userService';
 
-/**
- * Authentication Context Type Definition
- */
+// Authentication Context Type Definition
 interface AuthContextType {
   /** Current authenticated user or null if not authenticated */
   currentUser: AppUser | null;
@@ -17,8 +10,8 @@ interface AuthContextType {
   /** Whether a user is currently authenticated */
   isAuthenticated: boolean;
   
-  /** Login with email and password */
-  login: (email: string, password: string) => Promise<boolean>;
+  /** Login with email and password or directly with user data */
+  login: (email: string, password: string | null, userData?: AppUser | null) => Promise<boolean>;
   
   /** Register a new user */
   signup: (email: string, password: string, username: string, firstName: string, lastName: string, role?: string) => Promise<boolean>;
@@ -33,10 +26,7 @@ interface AuthContextType {
   updateUserProfile: (updates: Partial<AppUser>) => Promise<AppUser | null>;
 }
 
-/**
- * Default context value to avoid undefined errors
- * This ensures components can safely use the context even before the provider is initialized
- */
+// Default context value
 const defaultAuthContext: AuthContextType = {
   currentUser: null,
   isAuthenticated: false,
@@ -47,28 +37,22 @@ const defaultAuthContext: AuthContextType = {
   updateUserProfile: async () => null
 };
 
-/** The Authentication Context */
+// The Authentication Context
 const AuthContext = createContext<AuthContextType>(defaultAuthContext);
 
-/**
- * Custom hook to access the authentication context
- * @returns The authentication context value
- */
+// Custom hook to access the authentication context
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   // Context will never be undefined now because we provided a default value
   return context;
 };
 
-/** Props for the AuthProvider component */
+// Props for the AuthProvider component
 interface AuthProviderProps {
   children: ReactNode;
 }
 
-/**
- * Authentication Provider Component
- * Manages authentication state and provides auth methods to the application
- */
+// Authentication Provider Component
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // State for the current authenticated user
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
@@ -76,118 +60,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Loading state for authentication operations
   const [loading, setLoading] = useState(true);
 
-  // Check if user is already logged in on mount and set up auth listener
+  // Check if user is already logged in by checking localStorage
   useEffect(() => {
-    // Function to handle session state
-    const handleSession = async (session: Session | null) => {
-      if (session?.user) {
-        // Set basic user data immediately
-        const userData: AppUser = {
-          id: session.user.id,
-          email: session.user.email || '',
-          username: session.user.user_metadata?.username || '',
-          first_name: session.user.user_metadata?.first_name || '',
-          last_name: session.user.user_metadata?.last_name || '',
-          role: session.user.user_metadata?.role || 'User',
-          avatar_url: session.user.user_metadata?.avatar_url,
-          last_sign_in: session.user.last_sign_in_at,
-          created_at: session.user.created_at
-        };
-        setCurrentUser(userData);
+    const checkLoggedInUser = async () => {
+      try {
+        // Check if we have a stored user ID in localStorage
+        const storedUserId = localStorage.getItem('userId');
         
-        // Fetch full profile in background
-        fetchUserProfile(session.user.id).catch(console.error);
-      } else {
+        if (storedUserId) {
+          // Fetch the user from the database
+          const { data: user, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', storedUserId)
+            .single();
+          
+          if (user && !error) {
+            // User found, set as current user
+            setCurrentUser(user);
+          } else {
+            // User not found or error, clear localStorage
+            localStorage.removeItem('userId');
+            setCurrentUser(null);
+          }
+        } else {
+          setCurrentUser(null);
+        }
+      } catch (error) {
+        console.error('Error checking logged in user:', error);
         setCurrentUser(null);
-      }
-      setLoading(false);
-    };
-    
-    // Get the current session
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        handleSession(session);
-      })
-      .catch(error => {
+      } finally {
         setLoading(false);
-      });
-
-    // Set up the auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      handleSession(session);
-    });
-    
-    // Cleanup function
-    return () => {
-      subscription?.unsubscribe();
+      }
     };
+    
+    checkLoggedInUser();
   }, []);
 
-  // Fetch user profile data from the users table or create a minimal profile from auth data
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      // First try to get the user from the database
-      const user = await userService.getUserById(userId).catch(() => null);
-      
-      if (user) {
-        // If user exists in the database, use that profile
-        setCurrentUser(user);
-      } else {
-        // If user doesn't exist in the database, create a minimal profile from auth data
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        
-        if (authUser) {
-          const minimalUser = {
-            id: authUser.id,
-            email: authUser.email || '',
-            username: authUser.user_metadata?.username || authUser.email?.split('@')[0] || 'user',
-            first_name: authUser.user_metadata?.first_name || '',
-            last_name: authUser.user_metadata?.last_name || '',
-            role: authUser.user_metadata?.role || 'User',
-            avatar_url: authUser.user_metadata?.avatar_url || '',
-            created_at: new Date().toISOString(),
-            last_sign_in: new Date().toISOString()
-          };
-          
-          // Try to create the user in the database, but don't block if it fails
-          userService.createUser(minimalUser).catch(console.warn);
-          
-          setCurrentUser(minimalUser);
-        } else {
-          setCurrentUser(null);
-        }
-      }
-    } catch (error) {
-      console.warn('Error fetching user profile:', error);
-      // Try to proceed with minimal auth data if possible
-      try {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        if (authUser) {
-          setCurrentUser({
-            id: authUser.id,
-            email: authUser.email || '',
-            username: authUser.user_metadata?.username || authUser.email?.split('@')[0] || 'user',
-            first_name: '',
-            last_name: '',
-            role: authUser.user_metadata?.role || 'User',
-            avatar_url: '',
-            created_at: new Date().toISOString(),
-            last_sign_in: new Date().toISOString()
-          });
-        } else {
-          setCurrentUser(null);
-        }
-      } catch (authError) {
-        console.error('Failed to get auth user:', authError);
-        setCurrentUser(null);
-      }
-    } finally {
-      // Always set loading to false regardless of outcome
-      setLoading(false);
-    }
-  };
 
-  // Signup with email and password
+
+  // Signup with email and password - directly to the users table
   const signup = async (email: string, password: string, username: string, firstName: string, lastName: string, role: string = 'user'): Promise<boolean> => {
     if (!email || !password || !username) {
       console.error('Signup validation failed: Missing required fields');
@@ -198,80 +110,52 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     try {
       // Use the correct enum values for the user_role type
-      // The database is now using a proper enum type with 'admin' and 'user' values
       const validRole = role === 'admin' ? 'admin' : 'user';
       
       console.log('Attempting signup with:', { email, username, firstName, lastName, role: validRole });
       
-      // Step 1: Create the auth user with email/password
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: window.location.origin + '/login',
-          data: {
-            username,
-            first_name: firstName,
-            last_name: lastName,
-            role: validRole,
-            avatar_url: '' // Provide a default empty value
-          }
-        }
-      });
+      // Check if user with this email already exists
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('email')
+        .eq('email', email)
+        .maybeSingle();
       
-      if (authError) {
-        console.log('Signup result:', { authData, authError });
-        console.error('Auth error during signup:', authError);
-        console.error('Error details:', authError.message);
-        console.error('Error code:', authError.code);
-        console.error('Error status:', authError.status);
+      if (existingUser) {
+        console.error('User with this email already exists');
         return false;
       }
       
-      if (!authData || !authData.user) {
-        console.error('Signup failed: No user data returned');
-        return false;
-      }
+      // Generate a UUID for the user
+      const userId = crypto.randomUUID();
       
-      console.log('Auth user created successfully:', authData.user.id);
+      // Create the user directly in the users table
+      const newUser = {
+        id: userId,
+        email: email,
+        password: password, // In a real app, you should hash this password
+        username: username,
+        first_name: firstName,
+        last_name: lastName,
+        role: validRole,
+        avatar_url: '',
+        created_at: new Date().toISOString(),
+        last_sign_in: new Date().toISOString()
+      };
       
-      // Manually create the user in the users table instead of relying on a trigger
-      try {
-        const newUser = {
-          id: authData.user.id,
-          email: email,
-          username: username,
-          first_name: firstName,
-          last_name: lastName,
-          // Use a plain string for role instead of trying to use an enum type
-          // This avoids the 'user_role does not exist' error
-          role: validRole, 
-          avatar_url: '',
-          created_at: new Date().toISOString(),
-          last_sign_in: new Date().toISOString()
-        };
+      // Insert the user into the users table
+      const { error: insertError } = await supabase
+        .from('users')
+        .insert([newUser]);
         
-        // Insert the user into the users table
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert([newUser]);
-          
-        if (insertError) {
-          console.warn('Failed to create user profile in database, but auth user was created:', insertError);
-          // Continue with signup even if database insert fails
-          // The user can still log in and we'll create their profile on first login
-        } else {
-          console.log('User profile created successfully in database');
-        }
-      } catch (dbError) {
-        console.warn('Error creating user profile, but auth user was created:', dbError);
-        // Continue with signup even if database operations fail
+      if (insertError) {
+        console.error('Failed to create user in database:', insertError);
+        return false;
       }
       
-      if (authData.user && !authData.user.confirmed_at) {
-        console.log('Email confirmation required. Check your email to confirm your account.');
-      }
+      console.log('User profile created successfully in database');
       
+      // User will need to log in explicitly after registration
       return true;
     } catch (error) {
       console.error('Signup error:', error);
@@ -285,74 +169,82 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  /**
-   * Login with email and password
-   * Handles authentication without requiring a record in public.users table
-   */
-  const login = async (email: string, password: string): Promise<boolean> => {
-    // Validate inputs
-    if (!email || !password) {
-      return false;
-    }
-
+  // Login with email and password or directly with user data
+  const login = async (email: string, password: string | null, userData?: AppUser | null): Promise<boolean> => {
     try {
       setLoading(true);
       
-      // Step 1: Authenticate with Supabase Auth
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      // Handle authentication errors
-      if (error) {
-        console.error('Login error:', error);
-        throw error;
+      // If userData is provided, use it directly (already authenticated)
+      if (userData) {
+        console.log('Using provided user data for login');
+        // Update last sign in time
+        const timestamp = new Date().toISOString();
+        try {
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({ last_sign_in: timestamp })
+            .eq('id', userData.id);
+            
+          if (updateError) {
+            console.warn('Failed to update last sign in time:', updateError);
+          }
+        } catch (error) {
+          console.warn('Failed to update last sign in time:', error);
+        }
+        
+        // Set the current user in the application state
+        setCurrentUser(userData);
+        
+        // Store user ID in localStorage to persist login across page refreshes
+        localStorage.setItem('userId', userData.id);
+        
+        return true;
       }
       
-      // Verify user data was returned
-      if (!data.user) {
-        console.error('No user data returned from auth');
+      // Otherwise, authenticate with email and password
+      if (!email || !password) {
+        console.error('Login validation failed: Missing email or password');
         return false;
       }
       
-      // Create a minimal user object from auth data
-      // This doesn't require the public.users table
-      const userProfile = {
-        id: data.user.id,
-        email: data.user.email || email,
-        username: data.user.user_metadata?.username || email.split('@')[0],
-        first_name: data.user.user_metadata?.first_name || '',
-        last_name: data.user.user_metadata?.last_name || '',
-        role: data.user.user_metadata?.role || 'User',
-        avatar_url: data.user.user_metadata?.avatar_url || '',
-        created_at: new Date().toISOString(),
-        last_sign_in: new Date().toISOString()
-      };
+      // Query the users table directly for the user with matching email
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single();
       
-      // Try to update/create user profile in the database if possible
-      // But don't block login if this fails
-      try {
-        // First try to get the user to see if they exist
-        const existingUser = await userService.getUserById(data.user.id).catch(() => null);
-        
-        if (existingUser) {
-          // Update last sign in time if user exists
-          await userService.updateLastSignIn(data.user.id).catch(console.warn);
-        } else {
-          // Try to create the user if they don't exist
-          await userService.createUser(userProfile).catch(console.warn);
-        }
-      } catch (dbError) {
-        console.warn('Database operation during login failed, continuing with auth:', dbError);
-        // Continue with login even if database operations fail
+      if (userError || !user) {
+        console.error('User not found:', userError || 'No user with this email');
+        return false;
       }
       
-      // Update application state with our user object
-      setCurrentUser(userProfile);
+      // Verify password (in a real app, you'd compare hashed passwords)
+      if (user.password !== password) {
+        console.error('Password mismatch');
+        return false;
+      }
       
-      // Force a refresh of the auth state
-      await supabase.auth.getSession();
+      // Update last sign in time
+      const timestamp = new Date().toISOString();
+      try {
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({ last_sign_in: timestamp })
+          .eq('id', user.id);
+          
+        if (updateError) {
+          console.warn('Failed to update last sign in time:', updateError);
+        }
+      } catch (error) {
+        console.warn('Failed to update last sign in time:', error);
+      }
+      
+      // Set the current user in the application state
+      setCurrentUser(user);
+      
+      // Store user ID in localStorage to persist login across page refreshes
+      localStorage.setItem('userId', user.id);
       
       return true;
     } catch (error) {
@@ -380,32 +272,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Logout function
+  // Logout function - simplified since we're not using Supabase Auth
   const logout = async () => {
     try {
       console.log('Logging out user...');
       
-      // First clear the local user state to ensure UI updates immediately
+      // Clear the local user state
       setCurrentUser(null);
       
-      // Then attempt to sign out from Supabase
-      // Use a try-catch inside to handle potential session errors
-      try {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-          console.warn('Non-critical error during logout:', error);
-          // Continue with logout process despite the error
-        }
-      } catch (signOutError) {
-        // Log but don't rethrow - we've already cleared the local state
-        console.warn('Error during supabase.auth.signOut():', signOutError);
-        // This catches AuthSessionMissingError and other auth-related errors
-      }
+      // Remove user ID from localStorage
+      localStorage.removeItem('userId');
       
-      console.log('User logged out successfully');
-      return;
+      // No need to sign out from Supabase Auth since we're not using it
     } catch (error) {
-      console.error('Unexpected error in logout function:', error);
+      console.warn('Error during logout:', error);
       // Even if there's an error, we've already cleared the local state
     }
   };

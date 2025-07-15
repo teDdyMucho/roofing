@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { FaUser, FaLock, FaHome, FaEnvelope, FaArrowLeft } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import '../styles/Login.css';
 
 /**
@@ -63,7 +64,7 @@ const Login: React.FC = () => {
 
   /**
    * Handles the login form submission
-   * Attempts to authenticate the user and manages redirection on success
+   * Attempts to authenticate the user directly against the users table
    * @param e - Form event
    */
   const handleLoginSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -82,16 +83,44 @@ const Login: React.FC = () => {
     try {
       setIsLoading(true);
       
-      // Call the login function from AuthContext
-      const success = await login(loginData.email, loginData.password);
+      // Direct table authentication - query the users table for matching email
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', loginData.email)
+        .single();
+      
+      if (userError || !userData) {
+        console.error('User not found:', userError || 'No user with this email');
+        setError('Invalid email or password. Please check your credentials and try again.');
+        return;
+      }
+      
+      // Check if password matches (in a real app, you'd want to hash passwords)
+      if (userData.password !== loginData.password) {
+        console.error('Password mismatch');
+        setError('Invalid email or password. Please check your credentials and try again.');
+        return;
+      }
+      
+      console.log('User authenticated successfully:', {
+        id: userData.id,
+        email: userData.email,
+        username: userData.username,
+        role: userData.role
+      });
+      
+      // Call the login function from AuthContext to update app state
+      // We're passing null for password since we've already verified it
+      const success = await login(userData.email, null, userData);
       
       if (success) {
-        // Show success message
-        setSuccessMessage('Login successful! Redirecting...');
+        // Show success message with user data
+        const displayName = userData.username || userData.email.split('@')[0] || 'User';
+        setSuccessMessage(`Welcome back, ${displayName}! Redirecting...`);
         // The useEffect will handle the actual redirection when isAuthenticated changes
       } else {
-        // Handle failed login
-        setError('Invalid email or password. Please check your credentials and try again.');
+        setError('Something went wrong while setting up your session. Please try again.');
       }
     } catch (err) {
       // Handle exceptions

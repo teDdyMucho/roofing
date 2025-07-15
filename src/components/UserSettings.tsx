@@ -134,39 +134,14 @@ const UserSettings: React.FC = () => {
     }
   };
 
-  /**
-   * Navigate back to the dashboard
-   */
   const handleBackToDashboard = () => {
     navigate('/dashboard');
   };
 
-  /**
-   * Handle user logout
-   * Attempts to log out the user and navigates to landing page
-   * regardless of success/failure
-   */
   const handleLogout = () => {
-    try {
-      console.log('UserSettings: Initiating logout');
-      
-      // Start the logout process
-      logout()
-        .then(() => {
-          console.log('UserSettings: Logout successful, navigating to landing page');
-          // Navigate to landing page after logout completes
-          navigate('/', { replace: true });
-        })
-        .catch(error => {
-          console.error('UserSettings: Logout failed, still navigating to landing page', error);
-          // Even if logout fails, still navigate to landing page
-          navigate('/', { replace: true });
-        });
-    } catch (error) {
-      console.error('UserSettings: Error in handleLogout', error);
-      // If anything goes wrong, still try to navigate away
-      navigate('/', { replace: true });
-    }
+    logout()
+      .then(() => navigate('/', { replace: true }))
+      .catch(() => navigate('/', { replace: true }));
   };
 
   // Update user data if currentUser changes
