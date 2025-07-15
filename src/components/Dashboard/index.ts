@@ -10,3 +10,4 @@ export { default as ProjectChat } from './ProjectChat';
 export { default as AIChat } from './AIChat';
 export { default as OverviewContent } from './OverviewContent';
 export { default as ProjectStatusTabs } from './ProjectStatusTabs';
+export { default as ProjectWeatherComponent } from './ProjectWeatherComponent';

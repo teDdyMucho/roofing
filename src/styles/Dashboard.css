@@ -383,6 +383,109 @@
   color: var(--gray-500);
 }
 
+/* Dashboard Metrics Cards - New Design */
+.dashboard-metrics-container {
+  width: 100%;
+  padding: 1rem 2rem;
+}
+
+.metrics-cards-grid {
+  display: flex;
+  flex-direction: row;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.metric-card {
+  background-color: var(--white);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: var(--transition);
+  border: 1px solid var(--gray-200);
+  min-width: 200px;
+  flex: 1;
+}
+
+.metric-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.metric-card.active {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 1px var(--primary-light);
+}
+
+.metric-card-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-title {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.metric-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  margin: 0.25rem 0 0.5rem;
+}
+
+.metric-trend {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+}
+
+.metric-trend.positive {
+  color: var(--success);
+}
+
+.metric-trend.negative {
+  color: var(--danger);
+}
+
+.trend-indicator {
+  display: inline-flex;
+  align-items: center;
+}
+
+.metric-subtitle {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 1200px) {
+  .metric-card {
+    min-width: 180px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-metrics-container {
+    padding: 1rem;
+  }
+  
+  .metrics-cards-grid {
+    padding-bottom: 0.75rem;
+  }
+  
+  .metric-card {
+    min-width: 160px;
+  }
+}
+
 /* Dashboard Sections */
 .dashboard-section {
   background-color: var(--white);

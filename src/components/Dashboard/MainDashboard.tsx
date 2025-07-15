@@ -1,13 +1,14 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+
+// Services
 import { Project, fetchProjects, createProject, deleteProject } from '../../services/projectService';
 import { ChatMessage, fetchProjectMessages, sendProjectMessage, subscribeToProjectMessages } from '../../services/projectChatService';
 import { uploadDocumentForKeywordExtraction } from '../../services/documentService';
-import CalendarPage from '../Calendar/CalendarPage';
-import '../../styles/Dashboard.css';
 
-// Import our new components
+// Components
+import CalendarPage from '../Calendar/CalendarPage';
 import {
   Sidebar,
   DashboardHeader,
@@ -21,27 +22,113 @@ import {
   ProjectStatusTabs
 } from './';
 
-// Import component types
+// Types
 import type { IndexModalProps } from './IndexModal';
 import type { AIChatMessage } from './AIChat';
+
+// Styles
+import '../../styles/Dashboard.css';
+
+// Types
+interface Appointment {
+  id: number;
+  client: string;
+  address: string;
+  type: string;
+  date: string;
+  time: string;
+}
+
+interface Notification {
+  id: number;
+  message: string;
+  time: string;
+}
+
+interface NewProjectForm {
+  name: string;
+  client: string;
+  address: string;
+  start_date: string;
+  end_date: string;
+  value: string;
+}
+
+// Constants
+const API_TO_FORM_FIELD_MAPPING: Record<string, string> = {
+  'bid_number': 'bidNumber',
+  'name_of_project': 'nameOfProject',
+  'address_of_project': 'addressOfProject',
+  'owner_of_the_project': 'ownerOfTheProject',
+  'owner_entity_address': 'ownerEntityAddress',
+  'department': 'department',
+  'pre_bid_conference_dt': 'preBidConferenceDt',
+  'pre_bid_conference_location': 'preBidConferenceLocation',
+  'rfi_due': 'rfiDue',
+  'rfs_due': 'rfsDue',
+  'bid_due': 'bidDue',
+  'type_of_bid_submission': 'typeOfBidSubmission',
+  'website': 'website',
+  'bid_delivery_details': 'bidDeliveryDetails',
+  'estimated_project_cost': 'estimatedProjectCost',
+  'start_date': 'startDate',
+  'duration': 'duration',
+  'liquidated_damage': 'liquidatedDamage',
+  'labor_warranty': 'laborWarranty'
+};
+
+const MOCK_APPOINTMENTS: Appointment[] = [
+  { id: 1, client: 'Thompson Residence', address: '234 Elm St', type: 'Inspection', date: '2025-07-01', time: '10:00 AM' },
+  { id: 2, client: 'Wilson Property', address: '567 Cedar Ln', type: 'Estimate', date: '2025-07-02', time: '1:30 PM' },
+  { id: 3, client: 'Martinez Home', address: '890 Birch Ave', type: 'Repair', date: '2025-07-03', time: '9:00 AM' }
+];
+
+const MOCK_NOTIFICATIONS: Notification[] = [
+  { id: 1, message: 'New estimate request from Lee Residence', time: '2 hours ago' },
+  { id: 2, message: 'Material delivery scheduled for Smith project', time: '5 hours ago' },
+  { id: 3, message: 'Weather alert: Rain expected tomorrow', time: '1 day ago' }
+];
+
+const INITIAL_AI_MESSAGES = {
+  estimating: 'Hello! I\'m your Estimating AI assistant. How can I help you create roofing estimates today?',
+  admin: 'Welcome! I\'m your Admin AI assistant. I can help with scheduling, customer management, and business analytics.'
+};
 
 const Dashboard: React.FC = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   
-  // Handle logout
-  const handleLogout = () => {
-    logout()
-      .then(() => navigate('/', { replace: true }))
-      .catch(() => navigate('/', { replace: true }));
-  };
-  
-  // UI state
+  // Navigation and UI state
   const [activeTab, setActiveTab] = useState('overview');
   const [showAiMenu, setShowAiMenu] = useState(false);
+  const [activeIndexTab, setActiveIndexTab] = useState('generalDetails');
+  
+  // Project state
+  const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [projectStatusFilter, setProjectStatusFilter] = useState<string>('Bidding');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Modal state
   const [showCreateProjectForm, setShowCreateProjectForm] = useState(false);
   const [showIndexModal, setShowIndexModal] = useState(false);
+  
+  // New project form state
+  const [newProject, setNewProject] = useState<NewProjectForm>({
+    name: '',
+    client: '',
+    address: '',
+    start_date: '',
+    end_date: '',
+    value: ''
+  });
+  
+  // Project chat state
+  const [projectMessages, setProjectMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
   
   // State for index form data
   const [indexFormData, setIndexFormData] = useState({
@@ -75,40 +162,37 @@ const Dashboard: React.FC = () => {
     laborWarranty: ''
   });
   
-  // State for document upload and processing
+  // Document processing state
   const [uploadedDocument, setUploadedDocument] = useState<File | null>(null);
   const [isProcessingDocument, setIsProcessingDocument] = useState(false);
   const [documentKeywords, setDocumentKeywords] = useState<string[]>([]);
   const [extractedFields, setExtractedFields] = useState<Record<string, string>>({});
   const [documentError, setDocumentError] = useState<string | null>(null);
   
-  // State for active index tab
-  const [activeIndexTab, setActiveIndexTab] = useState('generalDetails');
+  // AI chat interface state
+  const [estimatingAiMessage, setEstimatingAiMessage] = useState('');
+  const [adminAiMessage, setAdminAiMessage] = useState('');
+  const [estimatingAiChat, setEstimatingAiChat] = useState<AIChatMessage[]>([
+    { sender: 'ai', message: INITIAL_AI_MESSAGES.estimating }
+  ]);
+  const [adminAiChat, setAdminAiChat] = useState<AIChatMessage[]>([
+    { sender: 'ai', message: INITIAL_AI_MESSAGES.admin }
+  ]);
   
-  // New project form state
-  const [newProject, setNewProject] = useState({
-    name: '',
-    client: '',
-    address: '',
-    start_date: '',
-    end_date: '',
-    value: ''
-  });
+  /**
+   * Handle user logout
+   */
+  const handleLogout = (): void => {
+    logout()
+      .then(() => navigate('/', { replace: true }))
+      .catch(() => navigate('/', { replace: true }));
+  };
   
-  // State for projects
-  const [projects, setProjects] = useState<Project[]>([]);
-  // State for project status filter
-  const [projectStatusFilter, setProjectStatusFilter] = useState<string>('Bidding');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Project chat state
-  const [projectMessages, setProjectMessages] = useState<ChatMessage[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [isSendingMessage, setIsSendingMessage] = useState(false);
-  
-  // Handle new project form input changes
-  const handleNewProjectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  /**
+   * Handle new project form input changes
+   * @param e - Input change event
+   */
+  const handleNewProjectChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
     setNewProject(prev => ({
       ...prev,
@@ -135,8 +219,21 @@ const Dashboard: React.FC = () => {
     loadProjects();
   }, []);
   
-  // Handle back button click to return to projects list
-  const handleBackToProjects = () => {
+  // Update selectedProject when selectedProjectId changes
+  useEffect(() => {
+    if (!selectedProjectId) {
+      setSelectedProject(null);
+      return;
+    }
+    
+    const project = projects.find(p => p.id === selectedProjectId);
+    setSelectedProject(project || null);
+  }, [selectedProjectId, projects]);
+  
+  /**
+   * Handle back button click to return to projects list
+   */
+  const handleBackToProjects = (): void => {
     setSelectedProjectId(null);
   };
   
@@ -239,8 +336,11 @@ const Dashboard: React.FC = () => {
     }
   };
   
-  // Handle project click to view project details
-  const handleProjectClick = (projectId: string) => {
+  /**
+   * Handle project click to view project details
+   * @param projectId - ID of the project to view
+   */
+  const handleProjectClick = (projectId: string): void => {
     setSelectedProjectId(projectId);
     setActiveTab('projects');
   };
@@ -266,22 +366,16 @@ const Dashboard: React.FC = () => {
     }
   };
   
-  // Mock data for upcoming appointments
-  const upcomingAppointments = [
-    { id: 1, client: 'Thompson Residence', address: '234 Elm St', type: 'Inspection', date: '2025-07-01', time: '10:00 AM' },
-    { id: 2, client: 'Wilson Property', address: '567 Cedar Ln', type: 'Estimate', date: '2025-07-02', time: '1:30 PM' },
-    { id: 3, client: 'Martinez Home', address: '890 Birch Ave', type: 'Repair', date: '2025-07-03', time: '9:00 AM' }
-  ];
+  // Use mock data from constants
+  const upcomingAppointments = MOCK_APPOINTMENTS;
+  const notificationItems = MOCK_NOTIFICATIONS;
   
-  // Notification data
-  const notificationItems = [
-    { id: 1, message: 'New estimate request from Lee Residence', time: '2 hours ago' },
-    { id: 2, message: 'Material delivery scheduled for Smith project', time: '5 hours ago' },
-    { id: 3, message: 'Weather alert: Rain expected tomorrow', time: '1 day ago' }
-  ];
-  
-  // Handle index form input changes
-  const handleIndexFormChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, field: keyof IndexModalProps['indexFormData']) => void = (e, field) => {
+  /**
+   * Handle index form input changes
+   * @param e - Input change event
+   * @param field - Form field to update
+   */
+  const handleIndexFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, field: keyof IndexModalProps['indexFormData']): void => {
     setIndexFormData(prev => ({
       ...prev,
       [field]: e.target.value
@@ -310,35 +404,12 @@ const Dashboard: React.FC = () => {
           
           // Update the form data with extracted fields
           if (result.extracted_fields) {
-            // Create a mapping between API field names and form field names
-            const fieldMapping: Record<string, keyof typeof indexFormData> = {
-              'bid_number': 'bidNumber',
-              'name_of_project': 'nameOfProject',
-              'address_of_project': 'addressOfProject',
-              'owner_of_the_project': 'ownerOfTheProject',
-              'owner_entity_address': 'ownerEntityAddress',
-              'department': 'department',
-              'pre_bid_conference_dt': 'preBidConferenceDt',
-              'pre_bid_conference_location': 'preBidConferenceLocation',
-              'rfi_due': 'rfiDue',
-              'rfs_due': 'rfsDue',
-              'bid_due': 'bidDue',
-              'type_of_bid_submission': 'typeOfBidSubmission',
-              'website': 'website',
-              'bid_delivery_details': 'bidDeliveryDetails',
-              'estimated_project_cost': 'estimatedProjectCost',
-              'start_date': 'startDate',
-              'duration': 'duration',
-              'liquidated_damage': 'liquidatedDamage',
-              'labor_warranty': 'laborWarranty'
-            };
-            
             // Create a new form data object with the extracted fields
             const updatedFormData = { ...indexFormData };
             
             // Populate form fields with extracted data
             Object.entries(result.extracted_fields).forEach(([apiField, value]) => {
-              const formField = fieldMapping[apiField];
+              const formField = API_TO_FORM_FIELD_MAPPING[apiField] as keyof typeof indexFormData;
               if (formField && value) {
                 updatedFormData[formField] = value;
               }
@@ -377,35 +448,12 @@ const Dashboard: React.FC = () => {
         
         // Update the form data with extracted fields before saving
         if (result.extracted_fields) {
-          // Create a mapping between API field names and form field names
-          const fieldMapping: Record<string, keyof typeof indexFormData> = {
-            'bid_number': 'bidNumber',
-            'name_of_project': 'nameOfProject',
-            'address_of_project': 'addressOfProject',
-            'owner_of_the_project': 'ownerOfTheProject',
-            'owner_entity_address': 'ownerEntityAddress',
-            'department': 'department',
-            'pre_bid_conference_dt': 'preBidConferenceDt',
-            'pre_bid_conference_location': 'preBidConferenceLocation',
-            'rfi_due': 'rfiDue',
-            'rfs_due': 'rfsDue',
-            'bid_due': 'bidDue',
-            'type_of_bid_submission': 'typeOfBidSubmission',
-            'website': 'website',
-            'bid_delivery_details': 'bidDeliveryDetails',
-            'estimated_project_cost': 'estimatedProjectCost',
-            'start_date': 'startDate',
-            'duration': 'duration',
-            'liquidated_damage': 'liquidatedDamage',
-            'labor_warranty': 'laborWarranty'
-          };
-          
           // Create a new form data object with the extracted fields
           const updatedFormData = { ...indexFormData };
           
           // Populate form fields with extracted data
           Object.entries(result.extracted_fields).forEach(([apiField, value]) => {
-            const formField = fieldMapping[apiField];
+            const formField = API_TO_FORM_FIELD_MAPPING[apiField] as keyof typeof indexFormData;
             if (formField && value) {
               updatedFormData[formField] = value;
             }
@@ -454,75 +502,42 @@ const Dashboard: React.FC = () => {
     setDocumentError(null);
   };
 
-  // Auth functions are already declared at the top of the component
 
-  const handleUserProfileClick = () => {
+
+  /**
+   * Handle sending messages to AI assistants
+   * @param messageType - Type of AI assistant to send message to
+   */
+  const handleSendMessage = useCallback((messageType: 'estimating' | 'admin') => {
+    const isEstimating = messageType === 'estimating';
+    const message = isEstimating ? estimatingAiMessage : adminAiMessage;
+    const setMessage = isEstimating ? setEstimatingAiMessage : setAdminAiMessage;
+    const setChat = isEstimating ? setEstimatingAiChat : setAdminAiChat;
+    
+    if (!message.trim()) return;
+    
+    // Add user message to chat
+    setChat(prev => [...prev, { sender: 'user', message }]);
+    
+    // Clear input field
+    setMessage('');
+    
+    // Simulate AI response after a short delay
+    setTimeout(() => {
+      const aiResponse = isEstimating
+        ? "Based on your roof dimensions, I estimate you'll need approximately 24 squares of shingles and 10 rolls of underlayment."
+        : "I've analyzed your schedule and found optimal times for the team meeting. Would Tuesday at 10am or Thursday at 2pm work better?";
+      
+      setChat(prev => [...prev, { sender: 'ai', message: aiResponse }]);
+    }, 1000);
+  }, [estimatingAiMessage, adminAiMessage]);
+  
+  /**
+   * Handle user profile click
+   */
+  const handleUserProfileClick = (): void => {
     navigate('/user-settings');
   };
-
-  // AI chat interface state
-  const [estimatingAiMessage, setEstimatingAiMessage] = useState('');
-  const [adminAiMessage, setAdminAiMessage] = useState('');
-  
-  // Initial AI chat messages
-  const [estimatingAiChat, setEstimatingAiChat] = useState<AIChatMessage[]>([
-    { 
-      sender: 'ai', 
-      message: 'Hello! I\'m your Estimating AI assistant. How can I help you create roofing estimates today?' 
-    }
-  ]);
-  
-  const [adminAiChat, setAdminAiChat] = useState<AIChatMessage[]>([
-    { 
-      sender: 'ai', 
-      message: 'Welcome! I\'m your Admin AI assistant. I can help with scheduling, customer management, and business analytics.' 
-    }
-  ]);
-
-  // Handle sending messages to AI assistants
-  const handleSendMessage = useCallback((messageType: 'estimating' | 'admin') => {
-    if (messageType === 'estimating' && estimatingAiMessage.trim()) {
-      // Add user message to chat
-      setEstimatingAiChat(prev => [...prev, { 
-        sender: 'user' as const, 
-        message: estimatingAiMessage 
-      }]);
-      
-      // Clear input field
-      setEstimatingAiMessage('');
-      
-      // Simulate AI response after a short delay
-      setTimeout(() => {
-        setEstimatingAiChat(prev => [
-          ...prev, 
-          { 
-            sender: 'ai' as const, 
-            message: `Based on your roof dimensions, I estimate you'll need approximately 24 squares of shingles and 10 rolls of underlayment.` 
-          }
-        ]);
-      }, 1000);
-    } else if (messageType === 'admin' && adminAiMessage.trim()) {
-      // Add user message to chat
-      setAdminAiChat(prev => [...prev, { 
-        sender: 'user' as const, 
-        message: adminAiMessage 
-      }]);
-      
-      // Clear input field
-      setAdminAiMessage('');
-      
-      // Simulate AI response after a short delay
-      setTimeout(() => {
-        setAdminAiChat(prev => [
-          ...prev, 
-          { 
-            sender: 'ai' as const, 
-            message: `I've analyzed your schedule and found optimal times for the team meeting. Would Tuesday at 10am or Thursday at 2pm work better?` 
-          }
-        ]);
-      }, 1000);
-    }
-  }, [estimatingAiMessage, adminAiMessage]);
 
   return (
     <div className="dashboard-container">
@@ -578,6 +593,7 @@ const Dashboard: React.FC = () => {
               <ProjectStatusTabs 
                 projectStatusFilter={projectStatusFilter}
                 setProjectStatusFilter={setProjectStatusFilter}
+                selectedProject={selectedProject}
               />
               
               <div className="projects-content-wrapper">
