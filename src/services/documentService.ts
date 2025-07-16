@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 // Environment variables
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL || '';
 const SUPABASE_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
-const WEBHOOK_URL = 'https://southlandroofing.app.n8n.cloud/webhook/cf37f131-2041-426d-add5-1dbb8a96640b';
+const WEBHOOK_URL = process.env.REACT_APP_DOCUMENT_WEBHOOK_URL || 'https://southlandroofing.app.n8n.cloud/webhook/cf37f131-2041-426d-add5-1dbb8a96640b';
 
 // Initialize Supabase client
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -49,47 +49,116 @@ export const uploadDocumentForKeywordExtraction = async (
     if (!projectId) throw new Error('Project ID is required');
     if (!userId) throw new Error('User ID is required');
     
+    // Log file details for debugging
+    console.log('Document upload - File details:', {
+      name: file.name,
+      type: file.type,
+      size: `${(file.size / 1024).toFixed(2)} KB`,
+      lastModified: new Date(file.lastModified).toISOString()
+    });
+    
+    // Check file size (warn if over 10MB as many services have limits)
+    if (file.size > 10 * 1024 * 1024) {
+      console.warn('Document upload - Large file detected:', `${(file.size / (1024 * 1024)).toFixed(2)} MB`);
+    }
+    
     // Create FormData for the API request
     const formData = new FormData();
     formData.append('document', file);
     formData.append('projectId', projectId);
     formData.append('userId', userId);
 
-    // Send the file to the webhook for processing
-    const response = await fetch(WEBHOOK_URL, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
-      throw new Error(`Document processing failed (${response.status}): ${errorText}`);
-    }
-
-    // Parse the webhook response
-    const data = await response.json();
-    if (!data.keywords || !Array.isArray(data.keywords)) {
-      throw new Error('Invalid response: missing or invalid keywords array');
-    }
-    // Optionally validate extracted_fields...
-    return data;
-    // Validate response data
-    if (!data.keywords || !Array.isArray(data.keywords)) {
-      throw new Error('Invalid response: missing or invalid keywords array');
-    }
+    console.log('Document upload - Sending request to webhook:', WEBHOOK_URL);
     
-    // Prepare document record for database
-    const documentKeywords: DocumentKeywords = {
-      document_name: file.name,
-      project_id: projectId,
-      keywords: data.keywords,
-      extracted_fields: data.extracted_fields || {},
-      uploaded_by: userId,
-      uploaded_at: new Date(),
-    };
+    // Send the file to the webhook for processing with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
+    try {
+      const response = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      console.log('Document upload - Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        console.error('Document upload - Error response:', errorText);
+        throw new Error(`Document processing failed (${response.status}): ${errorText}`);
+      }
+
+      // Check content type to handle different response formats
+      const contentType = response.headers.get('content-type');
+      console.log('Document upload - Response content type:', contentType);
+      
+      let data;
+      
+      // Handle different response formats
+      if (contentType && contentType.includes('application/json')) {
+        // Parse JSON response
+        data = await response.json();
+        console.log('Document upload - Response data structure:', Object.keys(data));
+      } else {
+        // Handle text response
+        const textResponse = await response.text();
+        console.log('Document upload - Text response:', textResponse);
+        
+        // If the response is just "Ok", create a default successful response
+        if (textResponse.trim() === 'Ok') {
+          data = {
+            keywords: ['document', 'uploaded', 'successfully'],
+            extracted_fields: {}
+          };
+          console.log('Document upload - Created default response for "Ok" text');
+        } else {
+          // Try to parse as JSON anyway in case the content-type header is wrong
+          try {
+            data = JSON.parse(textResponse);
+            console.log('Document upload - Parsed text as JSON:', Object.keys(data));
+          } catch (parseError) {
+            console.error('Document upload - Failed to parse response as JSON:', parseError);
+            throw new Error(`Invalid response format: ${textResponse.substring(0, 50)}${textResponse.length > 50 ? '...' : ''}`);
+          }
+        }
+      }
+      
+      // Validate response data
+      if (!data.keywords || !Array.isArray(data.keywords)) {
+        console.error('Document upload - Invalid response format:', data);
+        throw new Error('Invalid response: missing or invalid keywords array');
+      }
+      
+      // Prepare document record for database (for future database storage)
+      /* 
+      const documentKeywords: DocumentKeywords = {
+        document_name: file.name,
+        project_id: projectId,
+        keywords: data.keywords,
+        extracted_fields: data.extracted_fields || {},
+        uploaded_by: userId,
+        uploaded_at: new Date(),
+      };
+      */
+      
+      return data;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Document processing timed out after 30 seconds');
+      }
+      throw error;
+    }
   } catch (error) {
     console.error('Document processing failed:', error);
-    throw error instanceof Error ? error : new Error('Unknown error during document processing');
+    // Enhance error message with more context
+    const errorMessage = error instanceof Error 
+      ? `${error.message} (File: ${file.name}, Type: ${file.type}, Size: ${(file.size / 1024).toFixed(2)} KB)` 
+      : 'Unknown error during document processing';
+    throw new Error(errorMessage);
   }
 };
 

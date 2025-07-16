@@ -1,9 +1,10 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import DebugPanel from '../DebugPanel';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 // Services
-import { Project, fetchProjects, createProject, deleteProject } from '../../services/projectService';
+import { Project, fetchProjects, fetchProjectById, createProject, deleteProject, updateProjectIndex } from '../../services/projectService';
 import { ChatMessage, fetchProjectMessages, sendProjectMessage, subscribeToProjectMessages } from '../../services/projectChatService';
 import { uploadDocumentForKeywordExtraction } from '../../services/documentService';
 
@@ -115,6 +116,9 @@ const Dashboard: React.FC = () => {
   const [showCreateProjectForm, setShowCreateProjectForm] = useState(false);
   const [showIndexModal, setShowIndexModal] = useState(false);
   
+  // Debug panel state
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  
   // New project form state
   const [newProject, setNewProject] = useState<NewProjectForm>({
     name: '',
@@ -153,6 +157,9 @@ const Dashboard: React.FC = () => {
     typeOfBidSubmission: '',
     website: '',
     bidDeliveryDetails: '',
+    bidDeliveryAttention: '',
+    bidDeliveryDepartment: '',
+    bidDeliveryEntityName: '',
     
     // Bid Bond Request
     estimatedProjectCost: '',
@@ -237,6 +244,26 @@ const Dashboard: React.FC = () => {
     setSelectedProjectId(null);
   };
   
+  // Load project messages when a project is selected and add keyboard shortcut for debug panel (Ctrl+Shift+D)
+  useEffect(() => {
+    if (currentUser) {
+      fetchProjects();
+    } else {
+      navigate('/login');
+    }
+    
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.shiftKey && event.key === 'D') {
+        event.preventDefault();
+        setShowDebugPanel(prev => !prev);
+        console.log('Debug panel toggled:', !showDebugPanel);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentUser, navigate, showDebugPanel]);
+  
   // Load project messages when a project is selected
   useEffect(() => {
     if (!selectedProjectId) {
@@ -305,7 +332,16 @@ const Dashboard: React.FC = () => {
         status: 'Estimate' as const,
         start_date: newProject.start_date || null,
         end_date: newProject.end_date || null,
-        value: valueNumber
+        value: valueNumber,
+        // Add Chat Details fields with null values
+        phone: null,
+        email: null,
+        mailing: null,
+        billing: null,
+        category: null,
+        workType: null,
+        trade: null,
+        leadSource: null
       };
       
       // Send to database
@@ -375,12 +411,142 @@ const Dashboard: React.FC = () => {
    * @param e - Input change event
    * @param field - Form field to update
    */
-  const handleIndexFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, field: keyof IndexModalProps['indexFormData']): void => {
+  const handleIndexFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>, field: keyof IndexModalProps['indexFormData']): void => {
     setIndexFormData(prev => ({
       ...prev,
       [field]: e.target.value
     }));
   };
+  
+  // Load project data into index form when modal is opened or project selection changes
+  useEffect(() => {
+    if (showIndexModal && selectedProjectId) {
+      const loadProjectIndexData = async () => {
+        try {
+          const project = await fetchProjectById(selectedProjectId);
+          if (project) {
+            // Map database fields to form fields
+            const updatedFormData = { ...indexFormData };
+            
+            // Map specific fields from project to form
+            if (project.name) updatedFormData.nameOfProject = project.name;
+            if (project.address) updatedFormData.addressOfProject = project.address;
+            if (project.client) updatedFormData.ownerOfTheProject = project.client;
+            if (project.start_date) updatedFormData.startDate = project.start_date;
+            if (project.value) updatedFormData.estimatedProjectCost = project.value.toString();
+            
+            // Map additional fields if they exist in the project object
+            Object.entries(project).forEach(([key, value]) => {
+              if (value !== null && value !== undefined) {
+                // Handle specific mappings
+                if (key === 'ownerEntityAddress') updatedFormData.ownerEntityAddress = value as string;
+                if (key === 'department') updatedFormData.department = value as string;
+                
+                // Handle date fields - ensure they're in the correct format
+                if (key === 'preBidConferenceDt') {
+                  // If value is not already in ISO format, convert it
+                  if (typeof value === 'string' && value.trim() !== '') {
+                    try {
+                      // Try to create a valid date object
+                      const date = new Date(value);
+                      if (!isNaN(date.getTime())) {
+                        // Format as ISO string for datetime-local input
+                        updatedFormData.preBidConferenceDt = date.toISOString().slice(0, 16);
+                      } else {
+                        updatedFormData.preBidConferenceDt = value as string;
+                      }
+                    } catch (e) {
+                      updatedFormData.preBidConferenceDt = value as string;
+                    }
+                  } else {
+                    updatedFormData.preBidConferenceDt = value as string;
+                  }
+                }
+                
+                if (key === 'rfiDue') {
+                  // If value is not already in ISO format, convert it
+                  if (typeof value === 'string' && value.trim() !== '') {
+                    try {
+                      // Try to create a valid date object
+                      const date = new Date(value);
+                      if (!isNaN(date.getTime())) {
+                        // Format as ISO string for datetime-local input
+                        updatedFormData.rfiDue = date.toISOString().slice(0, 16);
+                      } else {
+                        updatedFormData.rfiDue = value as string;
+                      }
+                    } catch (e) {
+                      updatedFormData.rfiDue = value as string;
+                    }
+                  } else {
+                    updatedFormData.rfiDue = value as string;
+                  }
+                }
+                
+                if (key === 'rfsDue') {
+                  // If value is not already in ISO format, convert it
+                  if (typeof value === 'string' && value.trim() !== '') {
+                    try {
+                      // Try to create a valid date object
+                      const date = new Date(value);
+                      if (!isNaN(date.getTime())) {
+                        // Format as ISO string for datetime-local input
+                        updatedFormData.rfsDue = date.toISOString().slice(0, 16);
+                      } else {
+                        updatedFormData.rfsDue = value as string;
+                      }
+                    } catch (e) {
+                      updatedFormData.rfsDue = value as string;
+                    }
+                  } else {
+                    updatedFormData.rfsDue = value as string;
+                  }
+                }
+                
+                if (key === 'bidDue') {
+                  // If value is not already in ISO format, convert it
+                  if (typeof value === 'string' && value.trim() !== '') {
+                    try {
+                      // Try to create a valid date object
+                      const date = new Date(value);
+                      if (!isNaN(date.getTime())) {
+                        // Format as ISO string for datetime-local input
+                        updatedFormData.bidDue = date.toISOString().slice(0, 16);
+                      } else {
+                        updatedFormData.bidDue = value as string;
+                      }
+                    } catch (e) {
+                      updatedFormData.bidDue = value as string;
+                    }
+                  } else {
+                    updatedFormData.bidDue = value as string;
+                  }
+                }
+                
+                if (key === 'preBidConferenceLocation') updatedFormData.preBidConferenceLocation = value as string;
+                if (key === 'typeOfBidSubmission') updatedFormData.typeOfBidSubmission = value as string;
+                if (key === 'website') updatedFormData.website = value as string;
+                if (key === 'bidDeliveryDetails') updatedFormData.bidDeliveryDetails = value as string;
+                if (key === 'bidDeliveryAttention') updatedFormData.bidDeliveryAttention = value as string;
+                if (key === 'bidDeliveryDepartment') updatedFormData.bidDeliveryDepartment = value as string;
+                if (key === 'bidDeliveryEntityName') updatedFormData.bidDeliveryEntityName = value as string;
+                if (key === 'duration') updatedFormData.duration = value as string;
+                if (key === 'liquidatedDamage') updatedFormData.liquidatedDamage = value as string;
+                if (key === 'laborWarranty') updatedFormData.laborWarranty = value as string;
+              }
+            });
+            
+            setIndexFormData(updatedFormData);
+            console.log('Loaded project data into index form:', updatedFormData);
+          }
+        } catch (error) {
+          console.error('Error loading project data for index form:', error);
+        }
+      };
+      
+      loadProjectIndexData();
+    }
+  }, [showIndexModal, selectedProjectId]);
   
   // Handle document upload and keyword extraction
   const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -393,12 +559,15 @@ const Dashboard: React.FC = () => {
       if (selectedProjectId && currentUser) {
         setIsProcessingDocument(true);
         try {
+          console.log(`Processing document: ${file.name} (${file.type}, ${(file.size / 1024).toFixed(2)} KB)`);
+          
           const result = await uploadDocumentForKeywordExtraction(
             file,
             selectedProjectId,
             currentUser.id
           );
           
+          console.log('Document processed successfully with keywords:', result.keywords.length);
           setDocumentKeywords(result.keywords);
           setExtractedFields(result.extracted_fields || {});
           
@@ -420,7 +589,31 @@ const Dashboard: React.FC = () => {
           }
         } catch (error) {
           console.error('Error processing document:', error);
-          setDocumentError('Failed to process document. Please try again.');
+          
+          // Provide more specific error messages based on the error type
+          let errorMessage = 'Failed to process document. Please try again.';
+          
+          if (error instanceof Error) {
+            // Check for specific error conditions
+            if (error.message.includes('timed out')) {
+              errorMessage = 'Document processing timed out. The server might be busy or the file is too large.';
+            } else if (error.message.includes('network')) {
+              errorMessage = 'Network error while uploading document. Please check your internet connection.';
+            } else if (error.message.includes('413') || error.message.includes('Payload Too Large')) {
+              errorMessage = 'Document is too large. Please try a smaller file (under 10MB).';
+            } else if (error.message.includes('format') || error.message.includes('invalid')) {
+              errorMessage = 'Document format error. The system couldn\'t process this file format.';
+            } else if (error.message.includes('CORS')) {
+              errorMessage = 'Server connection error. Please try again later.';
+            } else if (file.size > 10 * 1024 * 1024) {
+              errorMessage = 'Document may be too large. Try a smaller file (under 10MB).';
+            }
+            
+            // Include part of the original error for debugging
+            console.log('Detailed error:', error.message);
+          }
+          
+          setDocumentError(errorMessage);
         } finally {
           setIsProcessingDocument(false);
         }
@@ -433,6 +626,13 @@ const Dashboard: React.FC = () => {
   
   // Handle saving index form data
   const handleSaveIndexForm = async () => {
+    if (!selectedProjectId) {
+      alert('No project selected. Please select a project first.');
+      return;
+    }
+    
+    // No validation needed since we're only updating edited fields
+
     // Process document if it exists and wasn't processed yet
     if (uploadedDocument && documentKeywords.length === 0 && selectedProjectId && currentUser) {
       setIsProcessingDocument(true);
@@ -462,44 +662,85 @@ const Dashboard: React.FC = () => {
           // Update the form data
           setIndexFormData(updatedFormData);
         }
-        
-        // Here you would typically send the form data and document keywords to your backend
-        console.log('Form data and keywords ready for saving:', {
-          formData: indexFormData,
-          document: uploadedDocument.name,
-          keywords: result.keywords,
-          extractedFields: result.extracted_fields
-        });
-        
       } catch (error) {
         console.error('Error processing document:', error);
         setDocumentError('Failed to process document. Saving form data only.');
-        
-        // Still save the form data even if document processing failed
-        console.log('Saving form data only:', indexFormData);
       } finally {
         setIsProcessingDocument(false);
       }
-    } else {
-      // If no document or already processed, just save the form data
-      console.log('Saving form data:', indexFormData);
-      if (documentKeywords.length > 0) {
-        console.log('With previously extracted keywords:', documentKeywords);
-        console.log('With previously extracted fields:', extractedFields);
-      }
     }
-    
-    // Close the modal
-    setShowIndexModal(false);
-    
-    // Show a success message
-    alert('Index data saved successfully!');
-    
-    // Reset document states for next time
-    setUploadedDocument(null);
-    setDocumentKeywords([]);
-    setExtractedFields({});
-    setDocumentError(null);
+
+    try {
+      // Only include fields that have been edited (non-empty values)
+      const editedFields: Record<string, any> = {};
+      
+      // Filter out empty fields and undefined values
+      Object.entries(indexFormData).forEach(([key, value]) => {
+        // Include the field if it has a non-empty value
+        if (value !== '' && value !== null && value !== undefined) {
+          editedFields[key] = value;
+        }
+      });
+      
+      // Log the data being sent to help with debugging
+      console.log('Saving edited index form fields:', editedFields);
+      
+      // Only proceed if there are fields to update
+      if (Object.keys(editedFields).length === 0) {
+        alert('No changes detected. Nothing to save.');
+        return;
+      }
+      
+      // Save only the edited fields to the projects table in Supabase
+      await updateProjectIndex(selectedProjectId, editedFields);
+      
+      // Update the local projects state with the updated project
+      const updatedProject = await fetchProjectById(selectedProjectId);
+      if (updatedProject) {
+        setProjects(prevProjects => 
+          prevProjects.map(p => p.id === selectedProjectId ? updatedProject : p)
+        );
+      }
+      
+      // Close the modal
+      setShowIndexModal(false);
+      
+      // Show a success message
+      alert('Index data saved successfully!');
+      
+      // Reset document states for next time
+      setUploadedDocument(null);
+      setDocumentKeywords([]);
+      setExtractedFields({});
+      setDocumentError(null);
+    } catch (error: any) {
+      // More detailed error logging with specific error information
+      console.error('Failed to save index data:', {
+        message: error?.message || 'Unknown error',
+        details: error?.details || {},
+        code: error?.code || 'UNKNOWN',
+        hint: error?.hint || '',
+        statusCode: error?.statusCode || '',
+        projectId: selectedProjectId
+      });
+      
+      // More informative user message based on error type
+      let errorMessage = 'Failed to save index data. ';
+      
+      if (error?.code === '42P01') {
+        errorMessage += 'The table might not exist in the database.';
+      } else if (error?.code === '42501') {
+        errorMessage += 'Permission denied. Please check your database permissions.';
+      } else if (error?.code === '23505') {
+        errorMessage += 'A record with this information already exists.';
+      } else if (error?.message) {
+        errorMessage += error.message;
+      } else {
+        errorMessage += 'Please try again or contact support if the issue persists.';
+      }
+      
+      alert(errorMessage);
+    }
   };
 
 
@@ -614,6 +855,7 @@ const Dashboard: React.FC = () => {
                       selectedProjectId={selectedProjectId}
                       projects={projects}
                       setShowIndexModal={setShowIndexModal}
+                      setSelectedProjectId={setSelectedProjectId}
                     />
                     
                     <ProjectChat 
@@ -659,6 +901,9 @@ const Dashboard: React.FC = () => {
           {/* Other tabs would go here */}
         </div>
       </main>
+      
+      {/* Debug Panel - Toggle with Ctrl+Shift+D */}
+      <DebugPanel isVisible={showDebugPanel} />
     </div>
   );
 };

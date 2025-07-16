@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
-import { FaListUl } from 'react-icons/fa';
-import { Project, formatCurrency, formatDate } from '../../services/projectService';
+import React, { useState, useEffect } from 'react';
+import { FaEye, FaEdit, FaFolder, FaFileAlt, FaPencilAlt, FaFolderOpen } from 'react-icons/fa';
+import { Project, getProjectById } from '../../services/projectService';
 import ProjectNavBar from './ProjectNavBar';
+import EditProjectModal from './EditProjectModal';
 
 interface ProjectDetailsProps {
   selectedProjectId: string | null;
   projects: Project[];
   setShowIndexModal: (show: boolean) => void;
+  setSelectedProjectId: (projectId: string | null) => void;
 }
 
 // Reusable InfoRow component for consistent display of label-value pairs
@@ -41,52 +43,57 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ name, status }) => (
 interface ContactInfoProps {
   projectName: string;
   client: string;
-  phone?: string;
-  email?: string;
+  phone?: string | null;
+  email?: string | null;
+  mailing?: string | null;
+  billing?: string | null;
 }
 
 const ContactInfoGroup: React.FC<ContactInfoProps> = ({ 
   projectName, 
   client, 
-  phone = "(714) 628-4400", // Default values that should come from project data
-  email = "leadership@orangeusd.org" 
+  phone = null, // Default to null, will display as N/A
+  email = null, // Default to null, will display as N/A
+  mailing = null,
+  billing = null
 }) => (
   <div className="contact-info-group">
-    <InfoRow label="Name" value={projectName} />
-    <InfoRow label="Company" value={client} />
-    <InfoRow label="Phone" value={phone} />
-    <InfoRow label="Email" value={email} />
-    <InfoRow label="Mailing" value="Same as Location" />
-    <InfoRow label="Billing" value="Same as Location" />
+    <h3 className="info-group-title">User Info</h3>
+    <InfoRow label="Name" value={client || 'N/A'} />
+    <InfoRow label="Company" value={projectName || 'N/A'} />
+    <InfoRow label="Phone" value={phone || 'N/A'} />
+    <InfoRow label="Email" value={email || 'N/A'} />
+    <InfoRow label="Mailing" value={mailing || 'N/A'} />
+    <InfoRow label="Billing" value={billing || 'N/A'} />
   </div>
 );
 
 // Component for location information
 interface LocationInfoProps {
   address: string;
-  category?: string;
-  workType?: string;
-  trade?: string;
-  leadSource?: string;
-  initialAppt: string | null;
+  category?: string | null;
+  workType?: string | null;
+  trade?: string | null;
+  leadSource?: string | null;
+  initialAppt?: string | null;
 }
 
 const LocationInfoGroup: React.FC<LocationInfoProps> = ({ 
   address, 
-  category = "PUBLIC WORK", 
-  workType = "New", 
-  trade = "New Roof", 
-  leadSource = "ONLINE BIDDING (Plan Hub, Build)", 
-  initialAppt 
+  category = null, 
+  workType = null, 
+  trade = null, 
+  leadSource = null, 
+  initialAppt = null
 }) => (
   <div className="location-info-group">
     <h3 className="info-group-title">Location Info</h3>
-    <InfoRow label="Address" value={address} />
-    <InfoRow label="Category" value={category} />
-    <InfoRow label="Work Type" value={workType} />
-    <InfoRow label="Trade" value={trade} />
-    <InfoRow label="Lead Source" value={leadSource} />
-    <InfoRow label="Initial Appt" value={initialAppt || 'Not scheduled'} />
+    <InfoRow label="Address" value={address || 'N/A'} />
+    <InfoRow label="Category" value={category || 'N/A'} />
+    <InfoRow label="Work Type" value={workType || 'N/A'} />
+    <InfoRow label="Trade" value={trade || 'N/A'} />
+    <InfoRow label="Lead Source" value={leadSource || 'N/A'} />
+    <InfoRow label="Initial Appt" value={initialAppt || 'N/A'} />
   </div>
 );
 
@@ -96,25 +103,49 @@ interface ProjectDetailsInfoProps {
   startDate: string | null;
   endDate: string | null;
   onIndexClick: (e: React.MouseEvent) => void;
+  onPreviewClick: (e: React.MouseEvent) => void;
+  onEditClick: (e: React.MouseEvent) => void;
 }
 
 const ProjectDetailsInfoGroup: React.FC<ProjectDetailsInfoProps> = ({ 
   value, 
   startDate, 
   endDate, 
-  onIndexClick 
+  onIndexClick,
+  onEditClick,
+  onPreviewClick,
 }) => (
   <div className="project-details-info-group">
-    <div className="index-button-horizontal">
-    <span className="index-preview" onClick={onIndexClick} aria-label="Project Index">
-        Preview Project
-      </span>
+    <div className="buttons-vertical">
       <button 
-        className="index-button" 
+        className="action-button action-preview" 
+        onClick={onPreviewClick}
+        aria-label="Preview Project"
+      >
+        <span className="button-icon-wrapper">
+          <FaFileAlt className="button-icon" />
+        </span>
+        <span className="button-text">Preview Project</span>
+      </button>
+      <button 
+        className="action-button action-edit" 
+        onClick={onEditClick}
+        aria-label="Edit Project"
+      >
+        <span className="button-icon-wrapper">
+          <FaPencilAlt className="button-icon" />
+        </span>
+        <span className="button-text">Edit Details</span>
+      </button>
+      <button 
+        className="action-button action-index" 
         onClick={onIndexClick}
         aria-label="Project Index"
       >
-        <FaListUl />
+        <span className="button-icon-wrapper">
+          <FaFolderOpen className="button-icon" />
+        </span>
+        <span className="button-text">Project Index</span>
       </button>
     </div>
   </div>
@@ -124,19 +155,71 @@ const ProjectDetailsInfoGroup: React.FC<ProjectDetailsInfoProps> = ({
 const ProjectDetails: React.FC<ProjectDetailsProps> = ({
   selectedProjectId,
   projects,
-  setShowIndexModal
+  setShowIndexModal,
+  setSelectedProjectId
 }) => {
   const [activeNavTab, setActiveNavTab] = useState<string>('Estimate');
+  const [showEditModal, setShowEditModal] = useState<boolean>(false);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  
+  // Initialize and update currentProject when selectedProjectId or projects change
+  useEffect(() => {
+    if (selectedProjectId) {
+      const projectFromList = projects.find(project => project.id === selectedProjectId);
+      if (projectFromList) {
+        setCurrentProject(projectFromList);
+      }
+    }
+  }, [selectedProjectId, projects]);
   
   if (!selectedProjectId) return null;
-  
-  const selectedProject = projects.find(project => project.id === selectedProjectId);
-  if (!selectedProject) return <div className="project-not-found">Project not found</div>;
+  if (!currentProject) return <div className="project-not-found">Loading project...</div>;
 
   // Handler for index button click
   const handleIndexClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowIndexModal(true);
+  };
+
+  // Handler for edit button click
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Show the edit modal
+    setShowEditModal(true);
+  };
+  
+  // Handler for project update
+  const handleProjectUpdate = async (updatedProject: Project) => {
+    try {
+      // Immediately update the current project with the updated data
+      setCurrentProject(updatedProject);
+      
+      // Fetch the latest project data from the database to ensure UI is fully in sync
+      const refreshedProject = await getProjectById(selectedProjectId);
+      setCurrentProject(refreshedProject);
+      
+      // Show a temporary success message
+      const successElement = document.createElement('div');
+      successElement.className = 'project-update-success';
+      successElement.textContent = 'Project updated successfully!';
+      document.body.appendChild(successElement);
+      
+      // Remove the success message after 3 seconds
+      setTimeout(() => {
+        if (document.body.contains(successElement)) {
+          document.body.removeChild(successElement);
+        }
+      }, 3000);
+    } catch (error) {
+      console.error('Error refreshing project data:', error);
+    }
+  };
+
+  // Handler for preview button click - navigates back to project selection screen
+  const handlePreviewClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Navigate back to the 'Select Project' screen by clearing the selected project
+    setSelectedProjectId(null);
   };
   
   // Handler for navigation tab change
@@ -146,10 +229,18 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
 
   return (
     <>
+      {/* Edit Project Modal */}
+      <EditProjectModal
+        showModal={showEditModal}
+        setShowModal={setShowEditModal}
+        project={currentProject}
+        onProjectUpdate={handleProjectUpdate}
+      />
+      
       <div className="project-details-section">
         <div className="horizontal-layout">
           <ProjectHeader 
-            name={selectedProject.name} 
+            name={currentProject.name} 
             status="In Progress" 
           />
           
@@ -157,20 +248,30 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
           
           <div className="project-info-grid">
             <ContactInfoGroup 
-              projectName="Orange USD - Villa Park ES APOC" 
-              client={selectedProject.client} 
+              projectName={currentProject.name} 
+              client={currentProject.client}
+              phone={currentProject.phone || null}
+              email={currentProject.email || null}
+              mailing={currentProject.mailing || null}
+              billing={currentProject.billing || null}
             />
             
             <LocationInfoGroup 
-              address={selectedProject.address} 
-              initialAppt={selectedProject.start_date} 
+              address={currentProject.address} 
+              category={currentProject.category || null}
+              workType={currentProject.workType || null}
+              trade={currentProject.trade || null}
+              leadSource={currentProject.leadSource || null}
+              initialAppt={currentProject.start_date} 
             />
             
             <ProjectDetailsInfoGroup 
-              value={selectedProject.value} 
-              startDate={selectedProject.start_date} 
-              endDate={selectedProject.end_date} 
-              onIndexClick={handleIndexClick} 
+              value={currentProject.value} 
+              startDate={currentProject.start_date} 
+              endDate={currentProject.end_date} 
+              onIndexClick={handleIndexClick}
+              onPreviewClick={handlePreviewClick}
+              onEditClick={handleEditClick} 
             />
           </div>
         </div>

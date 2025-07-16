@@ -30,27 +30,27 @@ const ProjectStatusTabs: React.FC<ProjectStatusTabsProps> = ({
   const statusCards: ProjectStatusData[] = [
     {
       label: 'Bidding',
-      value: 12,
+      value: 1,
       onClick: () => setProjectStatusFilter('Bidding')
     },
     {
       label: 'Awarded',
-      value: 8,
+      value: 2,
       onClick: () => setProjectStatusFilter('Awarded')
     },
     {
       label: 'Open',
-      value: '$45,250',
+      value: '3',
       onClick: () => setProjectStatusFilter('Open')
     },
     {
       label: 'Closed',
-      value: '4.8/5',
+      value: '4',
       onClick: () => setProjectStatusFilter('Closed')
     },
     {
       label: 'Billing',
-      value: '4.8/5',
+      value: '5',
       onClick: () => setProjectStatusFilter('Billing')
     }
   ];

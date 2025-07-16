@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import '../../styles/ProjectWeatherComponent.css';
 
+// API URLs from environment variables
+const GEOCODING_API_URL = process.env.REACT_APP_GEOCODING_API_URL || 'https://geocoding-api.open-meteo.com/v1/search';
+const HISTORICAL_WEATHER_API_URL = process.env.REACT_APP_HISTORICAL_WEATHER_API_URL || 'https://archive-api.open-meteo.com/v1/archive';
+const WEATHER_FORECAST_API_URL = process.env.REACT_APP_WEATHER_FORECAST_API_URL || 'https://api.open-meteo.com/v1/forecast';
+
 /**
  * Interface for daily forecast data
  */
@@ -233,7 +238,7 @@ const ProjectWeatherComponent: React.FC<ProjectWeatherProps> = ({ projectLocatio
       try {
         // First, get geocoding data to convert city name to coordinates
         const geocodingResponse = await fetch(
-          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`
+          `${GEOCODING_API_URL}?name=${encodeURIComponent(city)}&count=1&language=en&format=json`
         );
         
         if (!geocodingResponse.ok) {
@@ -259,7 +264,7 @@ const ProjectWeatherComponent: React.FC<ProjectWeatherProps> = ({ projectLocatio
         
         // Get historical weather data from Open-Meteo API
         const historicalResponse = await fetch(
-          `https://archive-api.open-meteo.com/v1/archive?latitude=${latitude}&longitude=${longitude}&start_date=${startDate}&end_date=${endDate}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`
+          `${HISTORICAL_WEATHER_API_URL}?latitude=${latitude}&longitude=${longitude}&start_date=${startDate}&end_date=${endDate}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`
         );
         
         if (!historicalResponse.ok) {
@@ -270,7 +275,7 @@ const ProjectWeatherComponent: React.FC<ProjectWeatherProps> = ({ projectLocatio
         
         // Get current weather and forecast from Open-Meteo API
         const weatherResponse = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,visibility,wind_speed_10m,wind_direction_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=7`
+          `${WEATHER_FORECAST_API_URL}?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,visibility,wind_speed_10m,wind_direction_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=7`
         );
         
         if (!weatherResponse.ok) {
@@ -343,9 +348,9 @@ const ProjectWeatherComponent: React.FC<ProjectWeatherProps> = ({ projectLocatio
     return (
       <div className="project-weather-container">
         <div className="weather-loading">
-          {!projectLocation ? 'No project location available' : 'Waiting for weather data...'}
+          {!projectLocation ? 'Select a project location to view weather data' : 'Waiting for weather data...'}
         </div>
-      </div>
+      </div>  
     );
   }
 

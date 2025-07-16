@@ -39,24 +39,24 @@ const OverviewContent: React.FC<OverviewContentProps> = ({
       {/* Stats Cards */}
       <div className="stats-container">
         <div className="stat-card">
-          <h3>Active Projects</h3>
-          <p className="stat-value">12</p>
-          <p className="stat-change positive">+2 from last month</p>
+          <h3>Bidding</h3>
+          <p className="stat-value">1</p>
         </div>
         <div className="stat-card">
-          <h3>Pending Estimates</h3>
-          <p className="stat-value">8</p>
-          <p className="stat-change positive">+3 from last month</p>
+          <h3>Awarded</h3>
+          <p className="stat-value">2</p>
         </div>
         <div className="stat-card">
-          <h3>Monthly Revenue</h3>
-          <p className="stat-value">$45,250</p>
-          <p className="stat-change positive">+12% from last month</p>
+          <h3>Open</h3>
+          <p className="stat-value">3</p>
         </div>
         <div className="stat-card">
-          <h3>Customer Satisfaction</h3>
-          <p className="stat-value">4.8/5</p>
-          <p className="stat-change neutral">Same as last month</p>
+          <h3>Close</h3>
+          <p className="stat-value">4</p>
+        </div>
+        <div className="stat-card">
+          <h3>Billing</h3>
+          <p className="stat-value">5</p>
         </div>
       </div>
       
@@ -103,10 +103,10 @@ const OverviewContent: React.FC<OverviewContentProps> = ({
         </div>
       </div>
       
-      {/* Upcoming Appointments */}
+      {/* Upcoming Jobs Offer */}
       <div className="dashboard-section">
         <div className="section-header">
-          <h2>Upcoming Appointments</h2>
+          <h2>Upcoming Jobs Offer</h2>
           <button className="view-all-btn">View All</button>
         </div>
         <div className="appointments-container">
