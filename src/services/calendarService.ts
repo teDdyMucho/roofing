@@ -59,14 +59,16 @@ const saveLocalEvents = (events: CalendarEvent[]): void => {
 
 /**
  * Fetch all calendar events from the database for the current user
- * Falls back to local storage if the table doesn't exist
+ * Falls back to local storage if the table doesn't exist or user is not authenticated
  */
 export const fetchEvents = async (): Promise<CalendarEvent[]> => {
   // Get the current user
   const { data: { user } } = await supabase.auth.getUser();
   
+  // If user is not authenticated, use local storage without throwing an error
   if (!user) {
-    throw new Error('User not authenticated');
+    console.log('User not authenticated, using local storage for calendar events');
+    return getLocalEvents();
   }
 
   // Check if the table exists
@@ -107,18 +109,30 @@ export const fetchEvents = async (): Promise<CalendarEvent[]> => {
 };
 
 /**
- * Add a new calendar event to the database
+ * Add a new calendar event to the database or local storage if not authenticated
  */
 export const addEvent = async (eventData: CalendarEventFormData): Promise<CalendarEvent> => {
   // Get the current user
   const { data: { user } } = await supabase.auth.getUser();
   
-  if (!user) {
-    throw new Error('User not authenticated');
-  }
-
   // Generate a valid UUID for the new event
   const eventId = uuidv4();
+  
+  // If user is not authenticated, use local storage
+  if (!user) {
+    console.log('User not authenticated, using local storage for calendar events');
+    const newEvent: CalendarEvent = {
+      id: eventId,
+      ...eventData,
+      user_id: 'anonymous-user',
+      allDay: eventData.allDay || false
+    };
+    
+    const events = getLocalEvents();
+    events.push(newEvent);
+    saveLocalEvents(events);
+    return newEvent;
+  }
   
   const newEvent: CalendarEvent = {
     id: eventId,
@@ -184,8 +198,25 @@ export const updateEvent = async (id: string, eventData: CalendarEventFormData):
   // Get the current user
   const { data: { user } } = await supabase.auth.getUser();
   
+  // If user is not authenticated, use local storage
   if (!user) {
-    throw new Error('User not authenticated');
+    console.log('User not authenticated, using local storage for calendar events');
+    const events = getLocalEvents();
+    const eventIndex = events.findIndex(e => e.id === id);
+    
+    if (eventIndex === -1) {
+      throw new Error('Event not found');
+    }
+    
+    const updatedEvent: CalendarEvent = {
+      id,
+      ...eventData,
+      user_id: 'anonymous-user'
+    };
+    
+    events[eventIndex] = updatedEvent;
+    saveLocalEvents(events);
+    return updatedEvent;
   }
 
   const updatedEvent: CalendarEvent = {
@@ -282,8 +313,13 @@ export const deleteEvent = async (id: string): Promise<void> => {
   // Get the current user
   const { data: { user } } = await supabase.auth.getUser();
   
+  // If user is not authenticated, use local storage
   if (!user) {
-    throw new Error('User not authenticated');
+    console.log('User not authenticated, using local storage for calendar events');
+    const events = getLocalEvents();
+    const filteredEvents = events.filter(e => e.id !== id);
+    saveLocalEvents(filteredEvents);
+    return;
   }
 
   // Check if the table exists

@@ -10,7 +10,8 @@ import {
   FaTimes,
   FaTasks,
   FaShieldAlt,
-  FaComments
+  FaComments,
+  FaFolderOpen
 } from 'react-icons/fa';
 import '../../styles/Modal.css';
 import '../../styles/ProjectNavBar.css';
@@ -18,6 +19,7 @@ import '../../styles/ProjectNavBar.css';
 interface ProjectNavBarProps {
   activeTab?: string;
   onTabChange?: (tab: string) => void;
+  onIndexClick?: () => void;
 }
 
 interface ModalProps {
@@ -144,7 +146,8 @@ const ProgressModal: React.FC<ProgressModalProps> = ({ isOpen, onClose }) => {
 
 const ProjectNavBar: React.FC<ProjectNavBarProps> = ({ 
   activeTab = 'Estimate', 
-  onTabChange = () => {} 
+  onTabChange = () => {},
+  onIndexClick = () => {}
 }) => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [progressModalOpen, setProgressModalOpen] = useState<boolean>(false);
@@ -152,6 +155,12 @@ const ProjectNavBar: React.FC<ProjectNavBarProps> = ({
   // Function to handle tab change and modal opening
   const handleTabClick = (tabId: string) => {
     onTabChange(tabId);
+    
+    // Special handling for Project Index
+    if (tabId === 'Project Index') {
+      onIndexClick();
+      return;
+    }
     
     // Only open modal if it's not already open for this tab
     if (activeModal !== tabId) {
@@ -169,6 +178,11 @@ const ProjectNavBar: React.FC<ProjectNavBarProps> = ({
 
   // Define navigation items with icons
   const navItems: NavItem[] = [
+    {
+      id: 'Project Index',
+      label: 'Project Info',
+      icon: <FaFolderOpen />
+    },
     {
       id: 'Estimate',
       label: 'Estimate',
@@ -232,11 +246,6 @@ const ProjectNavBar: React.FC<ProjectNavBarProps> = ({
           ))}
         </div>
         <div className="with-bottom-line"></div>
-        <div className="nav-bottom-buttons">
-          <button className="nav-bottom-button">Safety Videos</button>
-          <span className="nav-bottom-separator">|</span>
-          <button className="nav-bottom-button">Time Sheet</button>
-        </div>
         <div className="nav-bottom-progress" id="progress-button-container">
           <button 
             className="progress-button" 

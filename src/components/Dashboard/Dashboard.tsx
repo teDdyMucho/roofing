@@ -1,9 +1,5 @@
-import React from 'react';
 import MainDashboard from './MainDashboard';
 import '../../styles/Dashboard.css';
 
-const Dashboard: React.FC = () => {
-  return <MainDashboard />;
-};
-
-export default Dashboard;
+// Direct export of MainDashboard as Dashboard to maintain API compatibility
+export default MainDashboard;

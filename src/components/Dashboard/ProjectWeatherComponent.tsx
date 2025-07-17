@@ -376,7 +376,17 @@ const ProjectWeatherComponent: React.FC<ProjectWeatherProps> = ({ projectLocatio
         
         <div className="weather-forecast">
           {weatherData.forecast.map((day, index) => (
-            <div key={`forecast-${index}`} className={`forecast-day ${day.isPast ? 'past-day' : ''} ${day.isToday ? 'current-day' : ''}`}>
+            <div 
+              key={`forecast-${index}`} 
+              className={`forecast-day ${day.isPast ? 'past-day' : ''} ${day.isToday ? 'current-day' : ''}`}
+              onClick={() => {
+                // Make the day clickable - the click handler is already set up in WeatherTabContent
+                // This element will be detected by the event listener in WeatherTabContent
+                console.log(`Clicked on forecast day: ${day.day}`);
+              }}
+              style={{ cursor: 'pointer' }} // Add pointer cursor to indicate clickability
+              title={`View detailed forecast for ${day.day}`} // Add tooltip
+            >
               <div className="day-name">{day.day}</div>
               <div className="day-icon">{getWeatherIcon(day.icon)}</div>
               <div className="day-temps">

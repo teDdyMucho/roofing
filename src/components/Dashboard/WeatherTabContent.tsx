@@ -28,39 +28,74 @@ interface WeatherTabContentProps {
 const WeatherTabContent: React.FC<WeatherTabContentProps> = ({ 
   projectLocation,
   projects = []
- }) => {
+}) => {
   const [selectedLocation, setSelectedLocation] = useState<string | undefined>(projectLocation);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [detailedForecast, setDetailedForecast] = useState<DailyForecastDetails | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Function to handle location selection for weather display
-  const handleLocationSelect = (address: string | undefined) => {
-    setSelectedLocation(address);
-    setSelectedDay(null);
-    setDetailedForecast(null);
-    // No longer calls handleProjectClick to avoid navigating to Projects tab
+  // Helper function to convert WMO weather code to condition
+  const getWeatherCondition = (code: number): string => {
+    if (code === 0) return 'Clear sky';
+    if (code === 1) return 'Mainly clear';
+    if (code === 2) return 'Partly cloudy';
+    if (code === 3) return 'Overcast';
+    if (code >= 45 && code <= 48) return 'Fog';
+    if (code >= 51 && code <= 55) return 'Drizzle';
+    if (code >= 56 && code <= 57) return 'Freezing drizzle';
+    if (code >= 61 && code <= 65) return 'Rain';
+    if (code >= 66 && code <= 67) return 'Freezing rain';
+    if (code >= 71 && code <= 77) return 'Snow';
+    if (code >= 80 && code <= 82) return 'Rain showers';
+    if (code >= 85 && code <= 86) return 'Snow showers';
+    if (code === 95) return 'Thunderstorm';
+    if (code >= 96 && code <= 99) return 'Thunderstorm with hail';
+    return 'Unknown';
   };
   
-  // Function to handle day selection for detailed forecast
-  const handleDaySelect = useCallback(async (day: string) => {
-    if (selectedDay === day) {
-      // Toggle off if already selected
-      setSelectedDay(null);
-      setDetailedForecast(null);
+  // Helper function to convert wind direction degrees to cardinal direction
+  const getWindDirection = (degrees: number): string => {
+    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    const index = Math.round(degrees / 45) % 8;
+    return directions[index];
+  };
+  
+  // Helper function to format time from ISO string
+  const formatTime = (isoString: string): string => {
+    const date = new Date(isoString);
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  };
+  
+  // Function to get weather icon based on weather code
+  const getWeatherIcon = (code: number): string => {
+    if (code === 0) return '☀️';
+    if (code === 1) return '🌤️';
+    if (code === 2) return '⛅';
+    if (code === 3) return '☁️';
+    if (code >= 45 && code <= 48) return '🌫️';
+    if (code >= 51 && code <= 55) return '🌦️';
+    if (code >= 56 && code <= 57) return '🌧️';
+    if (code >= 61 && code <= 65) return '🌧️';
+    if (code >= 66 && code <= 67) return '❄️';
+    if (code >= 71 && code <= 77) return '❄️';
+    if (code >= 80 && code <= 82) return '🌦️';
+    if (code >= 85 && code <= 86) return '🌨️';
+    if (code >= 95 && code <= 99) return '⛈️';
+    return '☁️';
+  };
+
+  // Function to fetch detailed forecast for a specific day and location
+  const fetchDetailedForecast = useCallback(async (day: string, location: string | undefined) => {
+    if (!location) {
+      console.error('No location provided to fetchDetailedForecast');
       return;
     }
     
-    setSelectedDay(day);
     setLoading(true);
     
     try {
       // Get coordinates from the location
-      if (!selectedLocation) {
-        throw new Error('No location selected');
-      }
-      
-      const city = selectedLocation.split(',')[0];
+      const city = location.split(',')[0];
       const geocodingResponse = await fetch(
         `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`
       );
@@ -80,13 +115,43 @@ const WeatherTabContent: React.FC<WeatherTabContentProps> = ({
       // Get detailed forecast for the selected day
       const today = new Date();
       const dayIndex = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(day);
-      const targetDate = new Date(today);
+      let targetDate;
       
-      // Calculate the target date based on the day name
-      const currentDay = today.getDay();
-      let daysToAdd = dayIndex - currentDay;
-      if (daysToAdd < 0) daysToAdd += 7;
-      targetDate.setDate(today.getDate() + daysToAdd);
+      // Check if the selected day is today
+      const todayName = today.toLocaleDateString('en-US', { weekday: 'short' });
+      if (day === todayName) {
+        // If it's today, use today's date
+        targetDate = new Date(today);
+      } else {
+        // Otherwise calculate the target date based on the day name
+        targetDate = new Date(today);
+        const currentDay = today.getDay();
+        let daysToAdd = dayIndex - currentDay;
+        
+        // If the day is in the past (this week), calculate correctly
+        if (daysToAdd < 0) {
+          // Check if we're looking at past days (within the last 5 days)
+          const pastDaysNames = [];
+          for (let i = 1; i <= 5; i++) {
+            const pastDate = new Date(today);
+            pastDate.setDate(today.getDate() - i);
+            pastDaysNames.push(pastDate.toLocaleDateString('en-US', { weekday: 'short' }));
+          }
+          
+          if (pastDaysNames.includes(day)) {
+            // It's a past day within the last 5 days
+            const pastDayIndex = pastDaysNames.indexOf(day);
+            targetDate.setDate(today.getDate() - (pastDayIndex + 1));
+          } else {
+            // It's next week
+            daysToAdd += 7;
+            targetDate.setDate(today.getDate() + daysToAdd);
+          }
+        } else {
+          // It's later this week
+          targetDate.setDate(today.getDate() + daysToAdd);
+        }
+      }
       
       const formattedDate = targetDate.toISOString().split('T')[0];
       
@@ -129,56 +194,43 @@ const WeatherTabContent: React.FC<WeatherTabContentProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [selectedDay, selectedLocation]);
+  }, []);
   
-  // Helper function to convert WMO weather code to condition
-  const getWeatherCondition = (code: number): string => {
-    if (code === 0) return 'Clear sky';
-    if (code === 1) return 'Mainly clear';
-    if (code === 2) return 'Partly cloudy';
-    if (code === 3) return 'Overcast';
-    if (code >= 45 && code <= 48) return 'Fog';
-    if (code >= 51 && code <= 55) return 'Drizzle';
-    if (code >= 56 && code <= 57) return 'Freezing drizzle';
-    if (code >= 61 && code <= 65) return 'Rain';
-    if (code >= 66 && code <= 67) return 'Freezing rain';
-    if (code >= 71 && code <= 77) return 'Snow';
-    if (code >= 80 && code <= 82) return 'Rain showers';
-    if (code >= 85 && code <= 86) return 'Snow showers';
-    if (code >= 95 && code <= 99) return 'Thunderstorm';
-    return 'Unknown';
-  };
+  // Function to handle day selection for detailed forecast
+  const handleDaySelect = useCallback((day: string) => {
+    if (selectedDay === day) {
+      // Toggle off if already selected
+      setSelectedDay(null);
+      setDetailedForecast(null);
+      return;
+    }
+    
+    console.log(`Selected day: ${day}`);
+    setSelectedDay(day);
+    fetchDetailedForecast(day, selectedLocation);
+  }, [selectedDay, selectedLocation, fetchDetailedForecast]);
   
-  // Helper function to get wind direction
-  const getWindDirection = (degrees: number): string => {
-    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    const index = Math.round(degrees / 45) % 8;
-    return directions[index];
-  };
-  
-  // Helper function to format time
-  const formatTime = (isoTime: string): string => {
-    const time = new Date(isoTime);
-    return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-  
-  // Function to get weather icon based on weather code
-  const getWeatherIcon = (code: number): string => {
-    if (code === 0) return '☀️';
-    if (code === 1) return '🌤️';
-    if (code === 2) return '⛅';
-    if (code === 3) return '☁️';
-    if (code >= 45 && code <= 48) return '🌫️';
-    if (code >= 51 && code <= 55) return '🌦️';
-    if (code >= 56 && code <= 57) return '🌧️';
-    if (code >= 61 && code <= 65) return '🌧️';
-    if (code >= 66 && code <= 67) return '❄️';
-    if (code >= 71 && code <= 77) return '❄️';
-    if (code >= 80 && code <= 82) return '🌦️';
-    if (code >= 85 && code <= 86) return '🌨️';
-    if (code >= 95 && code <= 99) return '⛈️';
-    return '☁️';
-  };
+  // Function to handle location selection for weather display
+  const handleLocationSelect = useCallback((address: string | undefined) => {
+    // Clear any existing forecast data first to avoid stale data
+    setDetailedForecast(null);
+    
+    // Get today's day name
+    const today = new Date();
+    const dayName = today.toLocaleDateString('en-US', { weekday: 'short' });
+    
+    console.log(`Selecting today's weather (${dayName}) for location: ${address}`);
+    
+    // Important: Set the location first, then immediately fetch the forecast
+    // without relying on the state update
+    setSelectedLocation(address);
+    setSelectedDay(dayName);
+    
+    // Directly fetch the forecast data using the provided address
+    if (address) {
+      fetchDetailedForecast(dayName, address);
+    }
+  }, [fetchDetailedForecast]);
   
   // Listen for clicks on forecast days in the ProjectWeatherComponent
   useEffect(() => {
@@ -187,6 +239,14 @@ const WeatherTabContent: React.FC<WeatherTabContentProps> = ({
       const forecastDay = target.closest('.forecast-day');
       
       if (forecastDay) {
+        // Remove 'selected' class from all forecast days
+        document.querySelectorAll('.forecast-day').forEach(day => {
+          day.classList.remove('selected');
+        });
+        
+        // Add 'selected' class to the clicked day
+        forecastDay.classList.add('selected');
+        
         const dayNameElement = forecastDay.querySelector('.day-name');
         if (dayNameElement) {
           const day = dayNameElement.textContent;
@@ -202,7 +262,25 @@ const WeatherTabContent: React.FC<WeatherTabContentProps> = ({
     return () => {
       document.removeEventListener('click', handleForecastDayClick);
     };
-  }, [selectedLocation, handleDaySelect]);
+  }, [handleDaySelect]);
+  
+  // Add effect to mark the selected day when it changes
+  useEffect(() => {
+    if (selectedDay) {
+      // First remove 'selected' class from all days
+      document.querySelectorAll('.forecast-day').forEach(day => {
+        day.classList.remove('selected');
+      });
+      
+      // Find the day element that matches the selected day and add the 'selected' class
+      document.querySelectorAll('.forecast-day').forEach(day => {
+        const dayNameElement = day.querySelector('.day-name');
+        if (dayNameElement && dayNameElement.textContent === selectedDay) {
+          day.classList.add('selected');
+        }
+      });
+    }
+  }, [selectedDay]);
 
   return (
     <div className="weather-tab-content">

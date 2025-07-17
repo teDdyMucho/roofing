@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaEye, FaEdit, FaFolder, FaFileAlt, FaPencilAlt, FaFolderOpen } from 'react-icons/fa';
+import { FaFileAlt, FaPencilAlt } from 'react-icons/fa';
 import { Project, getProjectById } from '../../services/projectService';
 import ProjectNavBar from './ProjectNavBar';
 import EditProjectModal from './EditProjectModal';
@@ -58,7 +58,7 @@ const ContactInfoGroup: React.FC<ContactInfoProps> = ({
   billing = null
 }) => (
   <div className="contact-info-group">
-    <h3 className="info-group-title">User Info</h3>
+    <h3 className="info-group-title">Project Info</h3>
     <InfoRow label="Name" value={client || 'N/A'} />
     <InfoRow label="Company" value={projectName || 'N/A'} />
     <InfoRow label="Phone" value={phone || 'N/A'} />
@@ -87,7 +87,7 @@ const LocationInfoGroup: React.FC<LocationInfoProps> = ({
   initialAppt = null
 }) => (
   <div className="location-info-group">
-    <h3 className="info-group-title">Location Info</h3>
+    <h3 className="info-group-title">General Contractor</h3>
     <InfoRow label="Address" value={address || 'N/A'} />
     <InfoRow label="Category" value={category || 'N/A'} />
     <InfoRow label="Work Type" value={workType || 'N/A'} />
@@ -102,7 +102,6 @@ interface ProjectDetailsInfoProps {
   value: number | null;
   startDate: string | null;
   endDate: string | null;
-  onIndexClick: (e: React.MouseEvent) => void;
   onPreviewClick: (e: React.MouseEvent) => void;
   onEditClick: (e: React.MouseEvent) => void;
 }
@@ -111,7 +110,6 @@ const ProjectDetailsInfoGroup: React.FC<ProjectDetailsInfoProps> = ({
   value, 
   startDate, 
   endDate, 
-  onIndexClick,
   onEditClick,
   onPreviewClick,
 }) => (
@@ -136,16 +134,6 @@ const ProjectDetailsInfoGroup: React.FC<ProjectDetailsInfoProps> = ({
           <FaPencilAlt className="button-icon" />
         </span>
         <span className="button-text">Edit Details</span>
-      </button>
-      <button 
-        className="action-button action-index" 
-        onClick={onIndexClick}
-        aria-label="Project Index"
-      >
-        <span className="button-icon-wrapper">
-          <FaFolderOpen className="button-icon" />
-        </span>
-        <span className="button-text">Project Index</span>
       </button>
     </div>
   </div>
@@ -175,11 +163,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
   if (!selectedProjectId) return null;
   if (!currentProject) return <div className="project-not-found">Loading project...</div>;
 
-  // Handler for index button click
-  const handleIndexClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowIndexModal(true);
-  };
+
 
   // Handler for edit button click
   const handleEditClick = (e: React.MouseEvent) => {
@@ -269,7 +253,6 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
               value={currentProject.value} 
               startDate={currentProject.start_date} 
               endDate={currentProject.end_date} 
-              onIndexClick={handleIndexClick}
               onPreviewClick={handlePreviewClick}
               onEditClick={handleEditClick} 
             />
@@ -282,6 +265,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
         <ProjectNavBar 
           activeTab={activeNavTab}
           onTabChange={handleNavTabChange}
+          onIndexClick={() => setShowIndexModal(true)}
         />
       </div>
     </>

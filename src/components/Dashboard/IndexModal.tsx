@@ -141,7 +141,7 @@ const IndexModal: React.FC<IndexModalProps> = ({
     <div className="modal-overlay">
       <div className="modal-content">
         <div className="modal-header">
-          <h2>Project Index</h2>
+          <h2>Project Info</h2>
           <div className="modal-header-actions">
             <div className="document-upload-container">
               <input 
