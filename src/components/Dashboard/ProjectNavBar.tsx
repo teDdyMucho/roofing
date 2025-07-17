@@ -8,7 +8,9 @@ import {
   FaHardHat,
   FaImages,
   FaTimes,
-  FaTasks
+  FaTasks,
+  FaShieldAlt,
+  FaComments
 } from 'react-icons/fa';
 import '../../styles/Modal.css';
 import '../../styles/ProjectNavBar.css';
@@ -52,6 +54,8 @@ const Modal: React.FC<ModalProps & { children?: React.ReactNode }> = ({ isOpen, 
               {title === 'Billing Documents' && <FaMoneyCheckAlt />}
               {title === 'Labor Compliance' && <FaHardHat />}
               {title === 'Photos' && <FaImages />}
+              {title === 'Safety' && <FaShieldAlt />}
+              {title === 'Communication' && <FaComments />}
             </div>
             <div className="modal-title-text">
               <h2>{title}</h2>
@@ -74,6 +78,8 @@ const Modal: React.FC<ModalProps & { children?: React.ReactNode }> = ({ isOpen, 
                 {title === 'Billing Documents' && <FaMoneyCheckAlt size={48} />}
                 {title === 'Labor Compliance' && <FaHardHat size={48} />}
                 {title === 'Photos' && <FaImages size={48} />}
+                {title === 'Safety' && <FaShieldAlt size={48} />}
+                {title === 'Communication' && <FaComments size={48} />}
               </div>
               <h3>No {title} Available</h3>
               <p>Click the button below to add new {title.toLowerCase()} information</p>
@@ -197,6 +203,16 @@ const ProjectNavBar: React.FC<ProjectNavBarProps> = ({
       id: 'Photos',
       label: 'Photos',
       icon: <FaImages />
+    },
+    {
+      id: 'Safety',
+      label: 'Safety',
+      icon: <FaShieldAlt />
+    },
+    {
+      id: 'Communication',
+      label: 'Communication',
+      icon: <FaComments />
     }
   ];
 

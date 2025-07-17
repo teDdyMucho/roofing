@@ -19,6 +19,16 @@ const ProjectList: React.FC<ProjectListProps> = ({
   handleDeleteProject,
   setShowCreateProjectForm
 }) => {
+  // Handle null values for formatCurrency
+  const safeFormatCurrency = (value: number | null) => {
+    return formatCurrency(value || 0);
+  };
+
+  // Debug logs
+  console.log('ProjectList received projects:', projects);
+  console.log('Current filter:', projectStatusFilter);
+  console.log('Filtered projects:', projects.filter(project => projectStatusFilter === 'All' || project.status === projectStatusFilter));
+
   return (
     <div className="projects-sidebar">
       <div className="projects-sidebar-header">
@@ -27,7 +37,7 @@ const ProjectList: React.FC<ProjectListProps> = ({
       
       <div className="projects-list-sidebar">
         {projects
-          .filter(project => projectStatusFilter === 'Bidding' || project.status === projectStatusFilter)
+          .filter(project => projectStatusFilter === 'All' || project.status === projectStatusFilter)
           .map((project) => (
           <div 
             key={project.id} 
@@ -42,7 +52,7 @@ const ProjectList: React.FC<ProjectListProps> = ({
             </div>
             <p className="project-address">{project.address}</p>
             <div className="project-footer">
-              <p className="project-value">{formatCurrency(project.value)}</p>
+              <p className="project-value">{safeFormatCurrency(project.value)}</p>
               <button 
                 className="delete-project-btn" 
                 onClick={(e) => handleDeleteProject(e, project.id)}

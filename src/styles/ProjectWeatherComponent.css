@@ -94,6 +94,12 @@
   margin-top: 5px;
 }
 
+.feels-like {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 5px;
+}
+
 /* Forecast section with horizontal scrolling */
 .weather-forecast {
   display: flex;
@@ -206,41 +212,6 @@
   font-weight: 600;
 }
 
-/* Weather details section - currently not used in component but kept for future use */
-.weather-details {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin: 15px 0;
-  padding: 15px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  backdrop-filter: blur(5px);
-}
-
-.weather-detail-item {
-  display: flex;
-  align-items: center;
-  padding: 8px;
-}
-
-.weather-detail-icon {
-  margin-right: 10px;
-  font-size: 1.2rem;
-  opacity: 0.9;
-}
-
-.weather-detail-label {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 2px;
-}
-
-.weather-detail-value {
-  font-size: 1rem;
-  font-weight: 500;
-}
-
 /* Loading and error states */
 .weather-loading, .weather-error {
   padding: 40px;
@@ -255,8 +226,6 @@
 .weather-error {
   color: #fff;
 }
-
-
 
 /* Responsive styles */
 @media (min-width: 768px) {

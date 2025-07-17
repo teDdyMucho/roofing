@@ -1,5 +1,4 @@
 import React from 'react';
-import ProjectWeatherComponent from './ProjectWeatherComponent';
 import { Project } from '../../services/projectService';
 
 // Define the project status data structure
@@ -80,7 +79,6 @@ const ProjectStatusTabs: React.FC<ProjectStatusTabsProps> = ({
           </div>
         ))}
       </div>
-      <ProjectWeatherComponent projectLocation={selectedProject?.address} />
     </div>
   );
 };
