@@ -249,6 +249,7 @@ export const updateProjectIndex = async (id: string, indexData: any): Promise<Pr
     // Direct mapping of form fields to database columns
     const fieldMappings: Record<string, string> = {
       // Form field name -> Database column name
+      'id': 'id',
       'nameOfProject': 'name',
       'addressOfProject': 'address',
       'ownerOfTheProject': 'client',

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import EstimatingAIAssistant from '../EstimatingAI/EstimatingAIAssistant';
 import DebugPanel from '../DebugPanel';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -58,6 +59,7 @@ interface NewProjectForm {
 
 // Constants
 const API_TO_FORM_FIELD_MAPPING: Record<string, string> = {
+  'id': 'id',
   'bid_number': 'bidNumber',
   'name_of_project': 'nameOfProject',
   'address_of_project': 'addressOfProject',
@@ -82,7 +84,6 @@ const API_TO_FORM_FIELD_MAPPING: Record<string, string> = {
 
 
 const INITIAL_AI_MESSAGES = {
-  estimating: 'Hello! I\'m your Estimating AI assistant. How can I help you create roofing estimates today?',
   admin: 'Welcome! I\'m your Admin AI assistant. I can help with scheduling, customer management, and business analytics.'
 };
 
@@ -168,11 +169,7 @@ const MainDashboard: React.FC = () => {
   const [documentError, setDocumentError] = useState<string | null>(null);
   
   // AI chat interface state
-  const [estimatingAiMessage, setEstimatingAiMessage] = useState('');
   const [adminAiMessage, setAdminAiMessage] = useState('');
-  const [estimatingAiChat, setEstimatingAiChat] = useState<AIChatMessage[]>([
-    { sender: 'ai', message: INITIAL_AI_MESSAGES.estimating }
-  ]);
   const [adminAiChat, setAdminAiChat] = useState<AIChatMessage[]>([
     { sender: 'ai', message: INITIAL_AI_MESSAGES.admin }
   ]);
@@ -800,32 +797,26 @@ const MainDashboard: React.FC = () => {
 
 
   /**
-   * Handle sending messages to AI assistants
-   * @param messageType - Type of AI assistant to send message to
+   * Handle sending messages to Admin AI assistant
    */
-  const handleSendMessage = useCallback((messageType: 'estimating' | 'admin') => {
-    const isEstimating = messageType === 'estimating';
-    const message = isEstimating ? estimatingAiMessage : adminAiMessage;
-    const setMessage = isEstimating ? setEstimatingAiMessage : setAdminAiMessage;
-    const setChat = isEstimating ? setEstimatingAiChat : setAdminAiChat;
+  const handleSendMessage = useCallback(() => {
+    const message = adminAiMessage;
     
     if (!message.trim()) return;
     
     // Add user message to chat
-    setChat(prev => [...prev, { sender: 'user', message }]);
+    setAdminAiChat(prev => [...prev, { sender: 'user', message }]);
     
     // Clear input field
-    setMessage('');
+    setAdminAiMessage('');
     
     // Simulate AI response after a short delay
     setTimeout(() => {
-      const aiResponse = isEstimating
-        ? "Based on your roof dimensions, I estimate you'll need approximately 24 squares of shingles and 10 rolls of underlayment."
-        : "I've analyzed your schedule and found optimal times for the team meeting. Would Tuesday at 10am or Thursday at 2pm work better?";
+      const aiResponse = "I've analyzed your schedule and found optimal times for the team meeting. Would Tuesday at 10am or Thursday at 2pm work better?";
       
-      setChat(prev => [...prev, { sender: 'ai', message: aiResponse }]);
+      setAdminAiChat(prev => [...prev, { sender: 'ai', message: aiResponse }]);
     }, 1000);
-  }, [estimatingAiMessage, adminAiMessage]);
+  }, [adminAiMessage]);
   
   // User profile click is now handled by the DashboardHeader component
 
@@ -935,13 +926,7 @@ const MainDashboard: React.FC = () => {
           
           {/* AI Estimating Assistant Tab Content */}
           {activeTab === 'ai-estimating' && (
-            <AIChat 
-              chatType="estimating"
-              chatMessages={estimatingAiChat}
-              message={estimatingAiMessage}
-              setMessage={setEstimatingAiMessage}
-              handleSendMessage={handleSendMessage}
-            />
+            <EstimatingAIAssistant />
           )}
           
           {/* AI Admin Assistant Tab Content */}
@@ -951,7 +936,7 @@ const MainDashboard: React.FC = () => {
               chatMessages={adminAiChat}
               message={adminAiMessage}
               setMessage={setAdminAiMessage}
-              handleSendMessage={handleSendMessage}
+              handleSendMessage={() => handleSendMessage()}
             />
           )}
           

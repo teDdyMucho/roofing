@@ -65,7 +65,12 @@ export const uploadDocumentForKeywordExtraction = async (
     // Create FormData for the API request
     const formData = new FormData();
     formData.append('document', file);
-    formData.append('projectId', projectId);
+    
+    // Ensure we're using the correct project ID for the document upload
+    // This ensures that if the upload is associated with a different project,
+    // the webhook will receive the corresponding project ID
+    console.log('Document upload - Using project ID for document:', projectId);
+    formData.append('projectId', projectId); // This is the ID of the project where the document was uploaded
     formData.append('userId', userId);
 
     console.log('Document upload - Sending request to webhook:', WEBHOOK_URL);

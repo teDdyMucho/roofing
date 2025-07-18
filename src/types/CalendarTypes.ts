@@ -1,3 +1,5 @@
+import { Project } from '../services/projectService';
+
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -8,6 +10,9 @@ export interface CalendarEvent {
   allDay?: boolean;
   color?: string;
   user_id?: string;
+  category?: string;
+  project?: Project; // Add project property for project-related events
+  className?: string; // Add className property for custom CSS classes
 }
 
 export interface CalendarEventFormData {
