@@ -1,4 +1,3 @@
-export { default as Dashboard } from './Dashboard';
 export { default as MainDashboard } from './MainDashboard';
 export { default as Sidebar } from './Sidebar';
 export { default as DashboardHeader } from './DashboardHeader';
