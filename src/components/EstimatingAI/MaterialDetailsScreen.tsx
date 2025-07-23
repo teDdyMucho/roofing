@@ -1,6 +1,7 @@
 import React from 'react';
 import './EstimatingAIAssistant.css';
 import './insulation-styles.css';
+import axios from 'axios';
 
 // Types for all screen components
 export interface MaterialType {
@@ -10,6 +11,8 @@ export interface MaterialType {
   image: string;
   features?: string[];
   example?: string;
+  type?: string;
+  coverage_number?: number | null;
 }
 
 export interface CategoryType {
@@ -28,6 +31,8 @@ interface MaterialDetailsScreenProps {
   progressText?: string;
   showIntroMessage?: boolean;
   introMessage?: string;
+  onItemSelect?: (itemId: string, itemName: string) => void;
+  selectedMaterialIds?: string[];
 }
 
 interface MaterialCategoryScreenProps {
@@ -82,8 +87,24 @@ export const MaterialDetailsScreen: React.FC<MaterialDetailsScreenProps> = ({
   nextButtonText,
   progressText,
   showIntroMessage = false,
-  introMessage
-}) => {
+  introMessage,
+  onItemSelect,
+  selectedMaterialIds = []
+}) => {  
+  // Handle item selection
+  const handleItemSelect = (id: string, name: string) => {
+    // Call the parent component's onItemSelect if provided
+    if (onItemSelect) {
+      onItemSelect(id, name);
+    }
+  };
+  
+  // Check if an item is selected using the prop from parent
+  const isItemSelected = (id: string) => {
+    return selectedMaterialIds.includes(id);
+  };
+  
+  // Handle image click to show full size
   const handleImageClick = (src: string, alt: string) => {
     // Pass the event up to the parent component
     if (window.dispatchEvent) {
@@ -95,68 +116,78 @@ export const MaterialDetailsScreen: React.FC<MaterialDetailsScreenProps> = ({
   };
 
   return (
-    <div className="material-details-screen">
-      {showIntroMessage && introMessage && (
-        <div className="ai-intro-message">
-          <p>{introMessage}</p>
-        </div>
-      )}
-      <div className="category-header">
-        <div className="ai-greeting">
-          <p>{subtitle}</p>
-        </div>
-      </div>
-      <button className="back-button-corner" onClick={onBack}>
-        ← Back
-      </button>
-      <br />
-      <div className="title-material">
-        <h4>{title}</h4>
-      </div>
-      <div className="material-grid">
-        {materials.map((material) => (
-          <div key={material.id} className="material-card">
-            <div className="material-header">
-              <img 
-                src={material.image} 
-                alt={material.name}
-                className="material-image clickable-image"
-                onClick={() => handleImageClick(material.image, material.name)}
-                title="Click to view full size"
-              />
-              <div className="material-title">
-                <h3>{material.name}</h3>
-                {material.example && (
-                  <span className="material-example">{material.example}</span>
-                )}
-              </div>
+    <div className="material-details-screen-container">
+      <div className="material-details-main">
+        <div className="material-details-screen">
+          {showIntroMessage && introMessage && (
+            <div className="ai-intro-message">
+              <p>{introMessage}</p>
             </div>
-            <div className="material-content">
-              <p className="material-description">{material.description}</p>
-              {material.features && (
-                <div className="material-features">
-                  <h4>Key Features:</h4>
-                  <div className="features-list">
-                    {material.features.map((feature: string, index: number) => (
-                      <span key={index} className="feature-tag">{feature}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
+          )}
+          <div className="category-header">
+            <div className="ai-greeting">
+              <p>{subtitle}</p>
             </div>
           </div>
-        ))}
-      </div>
-      {onNext && (
-        <div className="section-navigation">
-          <button className="next-section-button" onClick={onNext}>
-            {nextButtonText || "Continue →"}
+          <button className="back-button-corner" onClick={onBack}>
+            ← Back
           </button>
-          {progressText && (
-            <p className="progress-text">{progressText}</p>
+          <br />
+          <div className="title-material">
+            <h4>{title}</h4>
+          </div>
+          <div className="material-grid">
+            {materials.map((material) => (
+              <div key={material.id} className="material-card">
+                <div className="material-header">
+                  <img 
+                    src={material.image} 
+                    alt={material.name}
+                    className="material-image clickable-image"
+                    onClick={() => handleImageClick(material.image, material.name)}
+                    title="Click to view full size"
+                  />
+                  <div className="material-title">
+                    <h3>{material.name}</h3>
+                    {material.example && (
+                      <span className="material-example">{material.example}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="material-content">
+                  <p className="material-description">{material.description}</p>
+                  {material.features && (
+                    <div className="material-features">
+                      <h4>Key Features:</h4>
+                      <div className="features-list">
+                        {material.features.map((feature: string, index: number) => (
+                          <span key={index} className="feature-tag">{feature}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <button 
+                    className={`material-select-button ${isItemSelected(material.id) ? 'selected' : ''}`}
+                    onClick={() => handleItemSelect(material.id, material.name)}
+                  >
+                    {isItemSelected(material.id) ? 'Selected' : 'Select'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          {onNext && (
+            <div className="section-navigation">
+              <button className="next-section-button" onClick={onNext}>
+                {nextButtonText || "Continue →"}
+              </button>
+              {progressText && (
+                <p className="progress-text">{progressText}</p>
+              )}
+            </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
@@ -306,6 +337,21 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({ items }) => {
     </div>
   );
 };
+
+
+// Webhook function to send data to n8n cloud
+export const sendToWebhook = async (data: any) => {
+  const webhookUrl = 'https://southlandroofing.app.n8n.cloud/webhook/df306ae9-14ac-41e3-8475-24f1487bb89f';
+  
+  try {
+    const response = await axios.post(webhookUrl, data);
+    console.log('Data sent successfully to webhook:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error sending data to webhook:', error);
+    throw error;
+  }
+};  
 
 // Default export for backward compatibility
 export default MaterialDetailsScreen;
