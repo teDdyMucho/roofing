@@ -595,23 +595,23 @@ const EstimatingAIAssistant: React.FC = () => {
       }
     };
 
-    const handleTotalSubmit = async () => {
+    const handleRoofingSubmit = async () => {
       setIsSubmitting(true);
-
-      const finalEstimate = selectedMaterials.map(material => ({
-        ...material,
-        coverage_number: materialsWithCoverage[material.id] || null
+      const roofingItems = selectedMaterials.filter(item => item.category === 'roofing');
+      const finalEstimate = roofingItems.map(item => ({
+        ...item,
+        coverage_number: materialsWithCoverage[item.id] || null
       }));
-
+    
       try {
         await sendToWebhook({
-          action: 'submit_total_estimate',
+          action: 'submit_roofing_estimate',
           estimate: finalEstimate
         });
-        alert('Estimate submitted successfully!');
+        alert('Roofing estimate submitted successfully!');
       } catch (error) {
-        console.error('Failed to submit estimate:', error);
-        alert('An error occurred while submitting the estimate. Please try again.');
+        console.error('Failed to submit roofing estimate:', error);
+        alert('An error occurred while submitting the roofing estimate. Please try again.');
       } finally {
         setIsSubmitting(false);
       }
@@ -669,7 +669,7 @@ const EstimatingAIAssistant: React.FC = () => {
             </button>
             <button 
               className="total-button" 
-              onClick={handleTotalSubmit}
+              onClick={handleRoofingSubmit}
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Submitting...' : 'Total'}

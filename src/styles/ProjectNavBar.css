@@ -4,13 +4,12 @@
   flex-direction: column;
   background-color: #ffffff;
   border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 20px;
   margin: 20px 0;
   overflow-x: auto;
   scrollbar-width: thin;
   scrollbar-color: #d1d5db transparent;
-  -webkit-tap-highlight-color: transparent; /* Removes tap highlight on mobile */
+  -webkit-tap-highlight-color: transparent; 
   transition: all 0.3s ease;
   border: 1px solid rgba(0, 0, 0, 0.03);
 }
@@ -58,7 +57,6 @@
 .project-nav-item:not(.active):hover {
   background-color: rgba(243, 244, 246, 0.8);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1);
   border-color: rgba(79, 70, 229, 0.1);
 }
 
@@ -66,7 +64,6 @@
   position: relative;
   background-color: rgba(79, 70, 229, 0.05) !important;
   border-color: rgba(79, 70, 229, 0.2);
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08) !important;
 }
 
 .project-nav-item.active::after {
@@ -79,7 +76,6 @@
   height: 3px;
   background: linear-gradient(90deg, rgba(79, 70, 229, 0.7) 0%, rgba(99, 102, 241, 1) 100%);
   border-radius: 6px;
-  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
   animation: navGlow 2s infinite alternate;
 }
 

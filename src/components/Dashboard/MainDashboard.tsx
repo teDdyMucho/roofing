@@ -878,36 +878,48 @@ const MainDashboard: React.FC = () => {
               />
               
               <div className="projects-content-wrapper">
-                {/* Left side: Projects Navigation */}
-                <ProjectList 
-                  projects={projects}
-                  selectedProjectId={selectedProjectId}
-                  projectStatusFilter={projectStatusFilter}
-                  handleProjectClick={handleProjectClick}
-                  handleDeleteProject={handleDeleteProject}
-                  setShowCreateProjectForm={setShowCreateProjectForm}
-                />
-                
-                {/* Right side: Combined Project Details and Chat */}
-                {selectedProjectId && (
-                  <div className="project-combined-panel">
-                    <ProjectDetails 
-                      selectedProjectId={selectedProjectId}
-                      projects={projects}
-                      setShowIndexModal={setShowIndexModal}
-                      setSelectedProjectId={setSelectedProjectId}
-                    />
-                    
-                    <ProjectChat 
-                      projectMessages={projectMessages}
-                      newMessage={newMessage}
-                      setNewMessage={setNewMessage}
-                      handleSendProjectMessage={handleSendProjectMessage}
-                      isSendingMessage={isSendingMessage}
-                    />
-                  </div>
-                )}
-              </div>
+  {/* Left side: Projects Navigation */}
+  <div className={`projects-sidebar${selectedProjectId ? ' slide-out' : ''}`}>
+    <ProjectList 
+      projects={projects}
+      selectedProjectId={selectedProjectId}
+      projectStatusFilter={projectStatusFilter}
+      handleProjectClick={handleProjectClick}
+      handleDeleteProject={handleDeleteProject}
+      setShowCreateProjectForm={setShowCreateProjectForm}
+    />
+  </div>
+
+  {/* Right side: Combined Project Details and Chat */}
+  <div className={`project-combined-panel${selectedProjectId ? ' expand-full' : ''}`}>
+    {selectedProjectId && (
+      <>
+        <ProjectDetails 
+          selectedProjectId={selectedProjectId}
+          projects={projects}
+          setShowIndexModal={setShowIndexModal}
+          setSelectedProjectId={setSelectedProjectId}
+          indexFormData={indexFormData}
+          handleIndexFormChange={handleIndexFormChange}
+          handleDocumentUpload={handleDocumentUpload}
+          handleSaveIndexForm={handleSaveIndexForm}
+          uploadedDocument={uploadedDocument}
+          isProcessingDocument={isProcessingDocument}
+          documentKeywords={documentKeywords}
+          documentError={documentError}
+          handleDeleteProject={handleDeleteProject}
+        />
+        <ProjectChat 
+          projectMessages={projectMessages}
+          newMessage={newMessage}
+          setNewMessage={setNewMessage}
+          handleSendProjectMessage={handleSendProjectMessage}
+          isSendingMessage={isSendingMessage}
+        />
+      </>
+    )}
+  </div>
+</div>
             </div>
           )}
           

@@ -177,201 +177,179 @@ const IndexModal: React.FC<IndexModalProps> = ({
             </div>
           )}
           
-          {/* Tabbed Form Interface */}
-          <div className="tabs-container">
-            <div className="tabs-header">
-              <button 
-                className={`tab-button ${activeTab === 'owner' ? 'active' : ''}`}
-                onClick={() => setActiveTab('owner')}
-              >
-                Project Owner Information
-              </button>
-              <button 
-                className={`tab-button ${activeTab === 'deadlines' ? 'active' : ''}`}
-                onClick={() => setActiveTab('deadlines')}
-              >
-                Bid Deadlines
-              </button>
-              <button 
-                className={`tab-button ${activeTab === 'submission' ? 'active' : ''}`}
-                onClick={() => setActiveTab('submission')}
-              >
-                Submission Type
-              </button>
-            </div>
-            
-            <div className="tabs-content">
-              {/* Tab 1: Project Owner Information */}
-              {activeTab === 'owner' && (
-                <div className="tab-pane">
-                  <div className="form-group">
-                    <label htmlFor="ownerOfTheProject">Owner of the Project</label>
-                    <input
-                      type="text"
-                      id="ownerOfTheProject"
-                      value={indexFormData.ownerOfTheProject}
-                      onChange={(e) => handleIndexFormChange(e, 'ownerOfTheProject')}
-                      className="form-control"
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="ddress">Owner Entity Address</label>
-                    <textarea
-                      id="ownerEntityAddress"
-                      value={indexFormData.ownerEntityAddress}
-                      onChange={(e) => handleIndexFormChange(e, 'ownerEntityAddress')}
-                      className="form-control"
-                      rows={3}
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="department">Attention To or Department</label>
-                    <input
-                      type="text"
-                      id="department"
-                      value={indexFormData.department}
-                      onChange={(e) => handleIndexFormChange(e, 'department')}
-                      className="form-control"
-                    />
-                  </div>
-                </div>
-              )}
-              
-              {/* Tab 2: Bid Deadlines */}
-              {activeTab === 'deadlines' && (
-                <div className="tab-pane">
-                  <div className="form-group">
-                    <label htmlFor="preBidConferenceDt">Pre-Bid Conference or Job Walk Date and Times</label>
-                    <DateTimeInput
-                      id="preBidConferenceDt"
-                      value={indexFormData.preBidConferenceDt}
-                      onChange={(e) => handleIndexFormChange(e, 'preBidConferenceDt')}
-                      className="form-control"
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="preBidConferenceLocation">Pre-Bid Conference Location</label>
-                    <textarea
-                      id="preBidConferenceLocation"
-                      value={indexFormData.preBidConferenceLocation}
-                      onChange={(e) => handleIndexFormChange(e, 'preBidConferenceLocation')}
-                      className="form-control"
-                      rows={2}
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="rfiDue">Request for Information (RFI) Due</label>
-                    <DateTimeInput
-                      id="rfiDue"
-                      value={indexFormData.rfiDue}
-                      onChange={(e) => handleIndexFormChange(e, 'rfiDue')}
-                      className="form-control"
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="rfsDue">Request for Substitution Form Due</label>
-                    <DateTimeInput
-                      id="rfsDue"
-                      value={indexFormData.rfsDue}
-                      onChange={(e) => handleIndexFormChange(e, 'rfsDue')}
-                      className="form-control"
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="bidDue">Bid Due or Closing Date and Time</label>
-                    <DateTimeInput
-                      id="bidDue"
-                      value={indexFormData.bidDue}
-                      onChange={(e) => handleIndexFormChange(e, 'bidDue')}
-                      className="form-control"
-                    />
-                  </div>
-                </div>
-              )}
-              
-              {/* Tab 3: Submission Type */}
-              {activeTab === 'submission' && (
-                <div className="tab-pane">
-                  <div className="form-group">
-                    <label htmlFor="typeOfBidSubmission">Type of Bid Submission</label>
-                    <select
-                      id="typeOfBidSubmission"
-                      value={indexFormData.typeOfBidSubmission}
-                      onChange={(e) => handleIndexFormChange(e, 'typeOfBidSubmission')}
-                      className="form-control"
-                    >
-                      <option value="">Select submission type</option>
-                      <option value="Online">Online</option>
-                      <option value="In Person">In Person</option>
-                      <option value="Both">Both</option>
-                    </select>
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="website">Website/Portal for Digital Bid Submission</label>
-                    <input
-                      type="url"
-                      id="website"
-                      value={indexFormData.website}
-                      onChange={(e) => handleIndexFormChange(e, 'website')}
-                      className="form-control"
-                      placeholder="https://"
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="bidDeliveryAttention">Bid Delivery Attention To</label>
-                    <input
-                      type="text"
-                      id="bidDeliveryAttention"
-                      value={indexFormData.bidDeliveryAttention || ''}
-                      onChange={(e) => handleIndexFormChange(e, 'bidDeliveryAttention')}
-                      className="form-control"
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="bidDeliveryDepartment">Bid Delivery Department</label>
-                    <input
-                      type="text"
-                      id="bidDeliveryDepartment"
-                      value={indexFormData.bidDeliveryDepartment || ''}
-                      onChange={(e) => handleIndexFormChange(e, 'bidDeliveryDepartment')}
-                      className="form-control"
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="bidDeliveryEntityName">Bid Delivery Entity Name</label>
-                    <input
-                      type="text"
-                      id="bidDeliveryEntityName"
-                      value={indexFormData.bidDeliveryEntityName || ''}
-                      onChange={(e) => handleIndexFormChange(e, 'bidDeliveryEntityName')}
-                      className="form-control"
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="bidDeliveryDetails">Bid Delivery Address or PO Box</label>
-                    <textarea
-                      id="bidDeliveryDetails"
-                      value={indexFormData.bidDeliveryDetails}
-                      onChange={(e) => handleIndexFormChange(e, 'bidDeliveryDetails')}
-                      className="form-control"
-                      rows={3}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+     {/* Unified Form Interface (No Tabs) */}
+<div className="form-container space-y-6">
+  {/* Project Owner Information */}
+  <div className="form-section">
+    <h3 className="section-title">Project Owner Information</h3>
+    
+    <div className="form-group">
+      <label htmlFor="ownerOfTheProject">Owner of the Project</label>
+      <input
+        type="text"
+        id="ownerOfTheProject"
+        value={indexFormData.ownerOfTheProject}
+        onChange={(e) => handleIndexFormChange(e, 'ownerOfTheProject')}
+        className="form-control"
+      />
+    </div>
+
+    <div className="form-group">
+      <label htmlFor="ownerEntityAddress">Owner Entity Address</label>
+      <textarea
+        id="ownerEntityAddress"
+        value={indexFormData.ownerEntityAddress}
+        onChange={(e) => handleIndexFormChange(e, 'ownerEntityAddress')}
+        className="form-control"
+        rows={3}
+      />
+    </div>
+
+    <div className="form-group">
+      <label htmlFor="department">Attention To or Department</label>
+      <input
+        type="text"
+        id="department"
+        value={indexFormData.department}
+        onChange={(e) => handleIndexFormChange(e, 'department')}
+        className="form-control"
+      />
+    </div>
+  </div>
+
+  {/* Bid Deadlines */}
+  <div className="form-section">
+    <h3 className="section-title">Bid Deadlines</h3>
+
+    <div className="form-group">
+      <label htmlFor="preBidConferenceDt">Pre-Bid Conference or Job Walk Date and Times</label>
+      <DateTimeInput
+        id="preBidConferenceDt"
+        value={indexFormData.preBidConferenceDt}
+        onChange={(e) => handleIndexFormChange(e, 'preBidConferenceDt')}
+        className="form-control"
+      />
+    </div>
+
+    <div className="form-group">
+      <label htmlFor="preBidConferenceLocation">Pre-Bid Conference Location</label>
+      <textarea
+        id="preBidConferenceLocation"
+        value={indexFormData.preBidConferenceLocation}
+        onChange={(e) => handleIndexFormChange(e, 'preBidConferenceLocation')}
+        className="form-control"
+        rows={2}
+      />
+    </div>
+
+    <div className="form-group">
+      <label htmlFor="rfiDue">Request for Information (RFI) Due</label>
+      <DateTimeInput
+        id="rfiDue"
+        value={indexFormData.rfiDue}
+        onChange={(e) => handleIndexFormChange(e, 'rfiDue')}
+        className="form-control"
+      />
+    </div>
+
+    <div className="form-group">
+      <label htmlFor="rfsDue">Request for Substitution Form Due</label>
+      <DateTimeInput
+        id="rfsDue"
+        value={indexFormData.rfsDue}
+        onChange={(e) => handleIndexFormChange(e, 'rfsDue')}
+        className="form-control"
+      />
+    </div>
+
+    <div className="form-group">
+      <label htmlFor="bidDue">Bid Due or Closing Date and Time</label>
+      <DateTimeInput
+        id="bidDue"
+        value={indexFormData.bidDue}
+        onChange={(e) => handleIndexFormChange(e, 'bidDue')}
+        className="form-control"
+      />
+    </div>
+  </div>
+
+  {/* Submission Type */}
+  <div className="form-section">
+    <h3 className="section-title">Submission Type</h3>
+
+    <div className="form-group">
+      <label htmlFor="typeOfBidSubmission">Type of Bid Submission</label>
+      <select
+        id="typeOfBidSubmission"
+        value={indexFormData.typeOfBidSubmission}
+        onChange={(e) => handleIndexFormChange(e, 'typeOfBidSubmission')}
+        className="form-control"
+      >
+        <option value="">Select submission type</option>
+        <option value="Online">Online</option>
+        <option value="In Person">In Person</option>
+        <option value="Both">Both</option>
+      </select>
+    </div>
+
+    <div className="form-group">
+      <label htmlFor="website">Website/Portal for Digital Bid Submission</label>
+      <input
+        type="url"
+        id="website"
+        value={indexFormData.website}
+        onChange={(e) => handleIndexFormChange(e, 'website')}
+        className="form-control"
+        placeholder="https://"
+      />
+    </div>
+
+    <div className="form-group">
+      <label htmlFor="bidDeliveryAttention">Bid Delivery Attention To</label>
+      <input
+        type="text"
+        id="bidDeliveryAttention"
+        value={indexFormData.bidDeliveryAttention || ''}
+        onChange={(e) => handleIndexFormChange(e, 'bidDeliveryAttention')}
+        className="form-control"
+      />
+    </div>
+
+    <div className="form-group">
+      <label htmlFor="bidDeliveryDepartment">Bid Delivery Department</label>
+      <input
+        type="text"
+        id="bidDeliveryDepartment"
+        value={indexFormData.bidDeliveryDepartment || ''}
+        onChange={(e) => handleIndexFormChange(e, 'bidDeliveryDepartment')}
+        className="form-control"
+      />
+    </div>
+
+    <div className="form-group">
+      <label htmlFor="bidDeliveryEntityName">Bid Delivery Entity Name</label>
+      <input
+        type="text"
+        id="bidDeliveryEntityName"
+        value={indexFormData.bidDeliveryEntityName || ''}
+        onChange={(e) => handleIndexFormChange(e, 'bidDeliveryEntityName')}
+        className="form-control"
+      />
+    </div>
+
+    <div className="form-group">
+      <label htmlFor="bidDeliveryDetails">Bid Delivery Address or PO Box</label>
+      <textarea
+        id="bidDeliveryDetails"
+        value={indexFormData.bidDeliveryDetails}
+        onChange={(e) => handleIndexFormChange(e, 'bidDeliveryDetails')}
+        className="form-control"
+        rows={3}
+      />
+    </div>
+  </div>
+</div>
+
           
           {/* Clear Fields Button */}
           <div className="delete-project-container">

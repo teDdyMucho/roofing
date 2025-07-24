@@ -3,12 +3,25 @@ import { FaFileAlt, FaPencilAlt } from 'react-icons/fa';
 import { Project, getProjectById } from '../../services/projectService';
 import ProjectNavBar from './ProjectNavBar';
 import EditProjectModal from './EditProjectModal';
+import formStyles from './FormStyles.module.css';
+
+import type { IndexModalProps } from './IndexModal';
 
 interface ProjectDetailsProps {
   selectedProjectId: string | null;
   projects: Project[];
   setShowIndexModal: (show: boolean) => void;
-  setSelectedProjectId: (projectId: string | null) => void;
+  setSelectedProjectId: (id: string | null) => void;
+  // Props for inline IndexModal
+  indexFormData: IndexModalProps['indexFormData'];
+  handleIndexFormChange: IndexModalProps['handleIndexFormChange'];
+  handleDocumentUpload: IndexModalProps['handleDocumentUpload'];
+  handleSaveIndexForm: IndexModalProps['handleSaveIndexForm'];
+  uploadedDocument: IndexModalProps['uploadedDocument'];
+  isProcessingDocument: IndexModalProps['isProcessingDocument'];
+  documentKeywords: IndexModalProps['documentKeywords'];
+  documentError: IndexModalProps['documentError'];
+  handleDeleteProject: IndexModalProps['handleDeleteProject'];
 }
 
 // Reusable InfoRow component for consistent display of label-value pairs
@@ -144,9 +157,28 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
   selectedProjectId,
   projects,
   setShowIndexModal,
-  setSelectedProjectId
+  setSelectedProjectId,
+  indexFormData,
+  handleIndexFormChange,
+  handleDocumentUpload,
+  handleSaveIndexForm,
+  uploadedDocument,
+  isProcessingDocument,
+  documentKeywords,
+  documentError,
+  handleDeleteProject
 }) => {
-  const [activeNavTab, setActiveNavTab] = useState<string>('Estimate');
+  const [ownerOpen, setOwnerOpen] = useState(false);
+  const [bidOpen, setBidOpen] = useState(false);
+  const [roofingTypeOpen, setRoofingTypeOpen] = useState(false);
+  const [manufacturerOpen, setManufacturerOpen] = useState(false);
+  const [submissionOpen, setSubmissionOpen] = useState(false);
+  const [bidProposalOpen, setBidProposalOpen] = useState(false);
+  const [bidBondOpen, setBidBondOpen] = useState(false);
+  const [laborComplianceOpen, setLaborComplianceOpen] = useState(false);
+  
+  const [showInlineIndex, setShowInlineIndex] = useState<boolean>(false);
+  const [activeNavTab, setActiveNavTab] = useState<string>('Project Index');
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   
@@ -259,14 +291,299 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
           </div>
         </div>
       </div>
-      
+  
       {/* Navigation bar positioned below the project details section */}
       <div className="project-nav-container">
         <ProjectNavBar 
           activeTab={activeNavTab}
           onTabChange={handleNavTabChange}
-          onIndexClick={() => setShowIndexModal(true)}
+          onIndexClick={() => setShowInlineIndex(prev => !prev)}
         />
+  
+        {/* Inline Project Index/Info below nav bar */}
+        {showInlineIndex && (
+          <div className={formStyles['form-container']}>
+            <div>
+              <h2 className={formStyles['form-title']}>Project Information Form</h2>
+              <form onSubmit={e => { e.preventDefault(); handleSaveIndexForm(); }}>
+                {/* Project Owner Info Section */}
+                <div className="form-section">
+                  <div
+                    className={formStyles['section-header']}
+                    onClick={() => setOwnerOpen(o => !o)}
+                  >
+                    <span className={formStyles['section-icon']}>{ownerOpen ? '–' : '+'}</span>
+                    <h3 className={formStyles['section-title']}>Project Owner Information</h3>
+                  </div>
+                  {ownerOpen && (
+                    <>
+                      <div className={formStyles['form-group']}>
+                        <label className={formStyles['form-label']} htmlFor="ownerOfTheProject">Owner of the Project</label>
+                        <input
+                          type="text"
+                          id="ownerOfTheProject"
+                          value={indexFormData.ownerOfTheProject}
+                          onChange={e => handleIndexFormChange(e, 'ownerOfTheProject')}
+                          className={formStyles['form-control']}
+                        />
+                      </div>
+                      <div className={formStyles['form-group']}>
+                        <label className={formStyles['form-label']} htmlFor="ownerEntityAddress">Owner Entity Address</label>
+                        <textarea
+                          id="ownerEntityAddress"
+                          value={indexFormData.ownerEntityAddress}
+                          onChange={e => handleIndexFormChange(e, 'ownerEntityAddress')}
+                          className={formStyles['form-control']}
+                          rows={3}
+                        />
+                      </div>
+                      <div className={formStyles['form-group']}>
+                        <label className={formStyles['form-label']} htmlFor="department">Attention To or Department</label>
+                        <input
+                          type="text"
+                          id="department"
+                          value={indexFormData.department}
+                          onChange={e => handleIndexFormChange(e, 'department')}
+                          className={formStyles['form-control']}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Bid Deadlines Section */}
+                <div className="form-section">
+                  <div
+                    className={formStyles['section-header']}
+                    onClick={() => setBidOpen(b => !b)}
+                  >
+                    <span className={formStyles['section-icon']}>{bidOpen ? '–' : '+'}</span>
+                    <h3 className={formStyles['section-title']}>Bid Deadlines</h3>
+                  </div>
+                  {bidOpen && (
+                    <>
+                      <div className={formStyles['form-group']}>
+                        <label className={formStyles['form-label']} htmlFor="preBidConferenceDt">Pre-Bid Conference or Job Walk Date and Times</label>
+                        <input
+                          type="datetime-local"
+                          id="preBidConferenceDt"
+                          value={indexFormData.preBidConferenceDt}
+                          onChange={e => handleIndexFormChange(e, 'preBidConferenceDt')}
+                          className={formStyles['form-control']}
+                        />
+                      </div>
+                      <div className={formStyles['form-group']}>
+                        <label className={formStyles['form-label']} htmlFor="preBidConferenceLocation">Pre-Bid Conference Location</label>
+                        <textarea
+                          id="preBidConferenceLocation"
+                          value={indexFormData.preBidConferenceLocation}
+                          onChange={e => handleIndexFormChange(e, 'preBidConferenceLocation')}
+                          className={formStyles['form-control']}
+                          rows={2}
+                        />
+                      </div>
+                      <div className={formStyles['form-group']}>
+                        <label className={formStyles['form-label']} htmlFor="rfiDue">Request for Information (RFI) Due</label>
+                        <input
+                          type="datetime-local"
+                          id="rfiDue"
+                          value={indexFormData.rfiDue}
+                          onChange={e => handleIndexFormChange(e, 'rfiDue')}
+                          className={formStyles['form-control']}
+                        />
+                      </div>
+                      <div className={formStyles['form-group']}>
+                        <label className={formStyles['form-label']} htmlFor="rfsDue">Request for Substitution Form Due</label>
+                        <input
+                          type="datetime-local"
+                          id="rfsDue"
+                          value={indexFormData.rfsDue}
+                          onChange={e => handleIndexFormChange(e, 'rfsDue')}
+                          className={formStyles['form-control']}
+                        />
+                      </div>
+                      <div className={formStyles['form-group']}>
+                        <label className={formStyles['form-label']} htmlFor="bidDue">Bid Due or Closing Date and Time</label>
+                        <input
+                          type="datetime-local"
+                          id="bidDue"
+                          value={indexFormData.bidDue}
+                          onChange={e => handleIndexFormChange(e, 'bidDue')}
+                          className={formStyles['form-control']}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Submission Type Section */}
+                <div className="form-section">
+                  <div
+                    className={formStyles['section-header']}
+                    onClick={() => setSubmissionOpen(s => !s)}
+                  >
+                    <span className={formStyles['section-icon']}>{submissionOpen ? '–' : '+'}</span>
+                    <h3 className={formStyles['section-title']}>Submission Type</h3>
+                  </div>
+                  {submissionOpen && (
+                    <>
+                    <div className={formStyles['form-group']}>
+                      <label className={formStyles['form-label']} htmlFor="typeOfBidSubmission">Type of Bid Submission</label>
+                      <select
+                        id="typeOfBidSubmission"
+                        value={indexFormData.typeOfBidSubmission}
+                        onChange={e => handleIndexFormChange(e, 'typeOfBidSubmission')}
+                        className={formStyles['form-control']}
+                      >
+                        <option value="">Select submission type</option>
+                        <option value="Online">Online</option>
+                        <option value="In Person">In Person</option>
+                        <option value="Both">Both</option>
+                      </select>
+                      </div>
+                      <div className={formStyles['form-group']}>
+                        <label className={formStyles['form-label']} htmlFor="website">Website/Portal for Digital Bid Submission</label>
+                        <input
+                          type="url"
+                          id="website"
+                          value={indexFormData.website|| ''}
+                          onChange={e => handleIndexFormChange(e, 'website')}
+                          className={formStyles['form-control']}
+                          placeholder="https://example.com"
+                        />
+                      </div>
+                      <div className={formStyles['form-group']}>
+                        <label className={formStyles['form-label']} htmlFor="bidDeliveryAttentionTo">Bid Delivery Attention To</label>
+                        <input
+                          type="text"
+                          id="bidDeliveryAttentionTo"
+                          value={indexFormData.bidDeliveryAttention|| ''}
+                          onChange={e => handleIndexFormChange(e, 'bidDeliveryAttention')}
+                          className={formStyles['form-control']}
+                        />
+                      </div>
+                      <div className={formStyles['form-group']}>
+                        <label className={formStyles['form-label']} htmlFor="bidDeliveryDepartment">Bid Delivery Department</label>
+                        <input
+                          type="text"
+                          id="bidDeliveryDepartment"
+                          value={indexFormData.bidDeliveryDepartment|| ''}
+                          onChange={e => handleIndexFormChange(e, 'bidDeliveryDepartment')}
+                          className={formStyles['form-control']}
+                        />
+                      </div>
+                      <div className={formStyles['form-group']}>
+                        <label className={formStyles['form-label']} htmlFor="bidDeliveryEntityName">Bid Delivery Entity Name</label>
+                        <input
+                          type="text"
+                          id="bidDeliveryEntityName"
+                          value={indexFormData.bidDeliveryEntityName|| ''}
+                          onChange={e => handleIndexFormChange(e, 'bidDeliveryEntityName')}
+                          className={formStyles['form-control']}
+                        />
+                      </div>
+                      <div className={formStyles['form-group']}>
+                        <label className={formStyles['form-label']} htmlFor="bidDeliveryAddress">Bid Delivery Address or PO Box</label>
+                        <input
+                          type="text"
+                          id="bidDeliveryAddress"
+                          value={indexFormData.bidDeliveryDetails|| ''}
+                          onChange={e => handleIndexFormChange(e, 'bidDeliveryDetails')}
+                          className={formStyles['form-control']}
+                        />
+                      </div>
+                      </>
+                    )}
+                  </div>
+                  {/* Roofing Type Section */}
+                    <div className="form-section">
+                      <div
+                        className={formStyles['section-header']}
+                        onClick={() => setRoofingTypeOpen(b => !b)}
+                      >
+                        <span className={formStyles['section-icon']}>{roofingTypeOpen ? '–' : '+'}</span>
+                        <h3 className={formStyles['section-title']}>Roofing Type</h3>
+                      </div>
+                    </div>
+                     {/* Manufacturer Section */}
+                    <div className="form-section">
+                      <div
+                        className={formStyles['section-header']}
+                        onClick={() => setManufacturerOpen(b => !b)}
+                      >
+                        <span className={formStyles['section-icon']}>{manufacturerOpen ? '–' : '+'}</span>
+                        <h3 className={formStyles['section-title']}>Manufacturer</h3>
+                      </div>
+                    </div>
+                    {/* Bid Proposal Information */}
+                    <div className="form-section">
+                      <div
+                        className={formStyles['section-header']}
+                        onClick={() => setBidProposalOpen(b => !b)}
+                      >
+                        <span className={formStyles['section-icon']}>{bidProposalOpen ? '–' : '+'}</span>
+                        <h3 className={formStyles['section-title']}>Bid Proposal Information</h3>
+                      </div>
+                    </div>
+                     {/* Bid Bond Section */}
+                    <div className="form-section">
+                      <div
+                        className={formStyles['section-header']}
+                        onClick={() => setBidBondOpen(b => !b)}
+                      >
+                        <span className={formStyles['section-icon']}>{bidBondOpen ? '–' : '+'}</span>
+                        <h3 className={formStyles['section-title']}>Bid Bond</h3>
+                      </div>
+                    </div>
+                    {/* Labor Compliance Section */}
+                    <div className="form-section">
+                      <div
+                        className={formStyles['section-header']}
+                        onClick={() => setLaborComplianceOpen(b => !b)}
+                      >
+                        <span className={formStyles['section-icon']}>{laborComplianceOpen ? '–' : '+'}</span>
+                        <h3 className={formStyles['section-title']}>Labor Compliance Information</h3>
+                      </div>
+                    </div>
+
+                  
+                {/* Document Upload */}
+                <div className={formStyles['form-section']}>
+                  <div className={formStyles['form-group']}>
+                    <label className={formStyles['form-label']} htmlFor="documentUpload">Upload Document</label>
+                    <div className={formStyles['file-input-wrapper']}>
+                      <label className={formStyles['file-input-label']} htmlFor="documentUpload">Choose File</label>
+                      <input
+                        type="file"
+                        id="documentUpload"
+                        onChange={handleDocumentUpload}
+                        className={formStyles['file-input']}
+                      />
+                    </div>
+                    {uploadedDocument && <div className={formStyles['file-name']}>Selected: {uploadedDocument.name}</div>}
+                    {isProcessingDocument && <div className={formStyles['file-name']}>Processing...</div>}
+                    {documentError && <div className={formStyles['error-text']}>{documentError}</div>}
+                  </div>
+                  {documentKeywords && documentKeywords.length > 0 && (
+                    <div className={formStyles['form-group']}>
+                      <label className={formStyles['form-label']}>Extracted Keywords:</label>
+                      <div className={formStyles['keywords-container']}>
+                        {documentKeywords.map((keyword: string, index: number) => (
+                          <span key={index} className={formStyles['keyword-tag']}>{keyword}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {/* Save Button*/}
+                <div className={formStyles['form-actions']}>
+                  <button type="submit" className={`${formStyles['btn']} ${formStyles['btn-primary']}`}>Save</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+        
       </div>
     </>
   );

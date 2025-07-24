@@ -837,19 +837,23 @@
 .project-chat-section {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  width: 100%;
+  height: auto;
+  width: auto;
   padding: 0;
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
 }
 
 /* Project Info Styles */
 .project-details-section {
   padding: 0.5rem;
   border-bottom: 1px solid var(--gray-200);
-  max-height: 40%;
+  max-height: 100%;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--gray-400) var(--white);
+  position: relative;
+  z-index: 10;
 }
 
 .horizontal-layout {
@@ -1190,6 +1194,13 @@
   overflow: hidden;
 }
 
+.projects-content-wrapper {
+  display: flex;
+  height: calc(100vh - 180px);
+  overflow: hidden;
+  position: relative;
+}
+
 .projects-sidebar {
   width: 300px;
   border-right: 1px solid var(--gray-200);
@@ -1197,6 +1208,34 @@
   flex-direction: column;
   background-color: var(--gray-50);
   position: relative;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: width, opacity;
+  z-index: 2;
+}
+
+.projects-sidebar.slide-out {
+  width: 0;
+  min-width: 0;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.project-combined-panel {
+  flex: 1 1 0%;
+  width: 100%;
+  min-width: 0;
+  background: #fff;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+  box-shadow: none;
+  overflow: auto;
+}
+
+.project-combined-panel.expand-full {
+  width: 100vw;
+  max-width: 100vw;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .projects-sidebar-header {
@@ -1679,7 +1718,8 @@ form {
 .project-combined-panel {
   background-color: var(--white);
   border-radius: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -2167,80 +2207,6 @@ form {
   background-color: var(--danger);
   color: var(--white);
 }
-
-/* =========================================
-   RESPONSIVE STYLES
-   ========================================= */
-
-/* Responsive Styles - Disabled */
-/*
-@media (max-width: 1024px) {
-  .stats-container {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .appointments-container {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .sidebar {
-    width: 70px;
-    overflow: hidden;
-  }
-  
-  .sidebar-header h2,
-  .sidebar-nav li span,
-  .logout-btn span {
-    display: none;
-  }
-  
-  .sidebar-nav li {
-    justify-content: center;
-    padding: 0.75rem;
-  }
-  
-  .sidebar-nav li svg {
-    margin-right: 0;
-    font-size: 1.25rem;
-  }
-  
-  .main-content {
-    margin-left: 70px;
-  }
-  
-  .stats-container {
-    grid-template-columns: 1fr;
-  }
-  
-  .appointments-container {
-    grid-template-columns: 1fr;
-  }
-  
-  .search-bar {
-    width: 200px;
-  }
-}
-
-@media (max-width: 480px) {
-  .dashboard-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .search-bar {
-    width: 100%;
-    margin-bottom: 1rem;
-  }
-  
-  .header-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-}
-*/
-
 /* =========================================
    ADMIN AI WITH TEAM PANEL LAYOUT
    ========================================= */
@@ -2516,67 +2482,6 @@ form {
 .chat-input button:hover {
   background-color: var(--primary-dark);
 }
-
-/* =========================================
-   DISABLED RESPONSIVE STYLES 
-   ========================================= */
-/*
-@media (max-width: 768px) {
-  .sidebar {
-    width: 70px;
-    overflow: hidden;
-  }
-  
-  .sidebar-header h2,
-  .sidebar-nav li span,
-  .logout-btn span {
-    display: none;
-  }
-  
-  .sidebar-nav li {
-    justify-content: center;
-    padding: 0.75rem;
-  }
-  
-  .sidebar-nav li svg {
-    margin-right: 0;
-    font-size: 1.25rem;
-  }
-  
-  .main-content {
-    margin-left: 70px;
-  }
-  
-  .stats-container {
-    grid-template-columns: 1fr;
-  }
-  
-  .appointments-container {
-    grid-template-columns: 1fr;
-  }
-  
-  .search-bar {
-    width: 200px;
-  }
-}
-
-@media (max-width: 480px) {
-  .dashboard-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .search-bar {
-    width: 100%;
-    margin-bottom: 1rem;
-  }
-  
-  .header-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-}
-*/
 /* Index Button and Floating Window Styles */
 .value-and-index-container {
   display: flex;
@@ -3743,5 +3648,3 @@ form {
     opacity: 0;
   }
 }
-
-/* End of Edit Project Modal Styling */
