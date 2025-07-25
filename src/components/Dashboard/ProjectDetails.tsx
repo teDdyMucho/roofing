@@ -4,6 +4,9 @@ import { Project, getProjectById } from '../../services/projectService';
 import ProjectNavBar from './ProjectNavBar';
 import EditProjectModal from './EditProjectModal';
 import formStyles from './FormStyles.module.css';
+import EstimateForm from '../navbarDocuments/EstimateForm';
+import BiddingDocumentsForm from '../navbarDocuments/BiddingDocumentsForm';
+import LaborComplianceForm from '../navbarDocuments/LaborComplianceForm';
 
 import type { IndexModalProps } from './IndexModal';
 
@@ -177,7 +180,10 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
   const [bidBondOpen, setBidBondOpen] = useState(false);
   const [laborComplianceOpen, setLaborComplianceOpen] = useState(false);
   
-  const [showInlineIndex, setShowInlineIndex] = useState<boolean>(false);
+  const [showIndexForm, setShowIndexForm] = useState<boolean>(false);
+  const [showEstimateForm, setShowEstimateForm] = useState<boolean>(false);
+  const [showBiddingDocumentsForm, setShowBiddingDocumentsForm] = useState<boolean>(false);
+  const [showLaborComplianceForm, setShowLaborComplianceForm] = useState<boolean>(false);
   const [activeNavTab, setActiveNavTab] = useState<string>('Project Index');
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
@@ -242,6 +248,38 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
   const handleNavTabChange = (tab: string) => {
     setActiveNavTab(tab);
   };
+  
+  // Handle index form toggle
+  const handleIndexClick = () => {
+    setShowIndexForm(prev => !prev);
+    setShowEstimateForm(false);
+    setShowBiddingDocumentsForm(false);
+    setShowLaborComplianceForm(false);
+  };
+  
+  // Handle estimate form toggle
+  const handleEstimateClick = () => {
+    setShowEstimateForm(prev => !prev);
+    setShowIndexForm(false);
+    setShowBiddingDocumentsForm(false);
+    setShowLaborComplianceForm(false);
+  };
+  
+  // Handle bidding documents form toggle
+  const handleBiddingDocumentsClick = () => {
+    setShowBiddingDocumentsForm(prev => !prev);
+    setShowIndexForm(false);
+    setShowEstimateForm(false);
+    setShowLaborComplianceForm(false);
+  };
+  
+  // Handle labor compliance form toggle
+  const handleLaborComplianceClick = () => {
+    setShowLaborComplianceForm(prev => !prev);
+    setShowIndexForm(false);
+    setShowEstimateForm(false);
+    setShowBiddingDocumentsForm(false);
+  };
 
   return (
     <>
@@ -297,11 +335,14 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
         <ProjectNavBar 
           activeTab={activeNavTab}
           onTabChange={handleNavTabChange}
-          onIndexClick={() => setShowInlineIndex(prev => !prev)}
+          onIndexClick={handleIndexClick}
+          onEstimateClick={handleEstimateClick}
+          onBiddingDocumentsClick={handleBiddingDocumentsClick}
+          onLaborComplianceClick={handleLaborComplianceClick}
         />
   
         {/* Inline Project Index/Info below nav bar */}
-        {showInlineIndex && (
+        {showIndexForm && (
           <div className={formStyles['form-container']}>
             <div>
               <h2 className={formStyles['form-title']}>Project Information Form</h2>
@@ -580,6 +621,36 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
                   <button type="submit" className={`${formStyles['btn']} ${formStyles['btn-primary']}`}>Save</button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Inline Estimate Form */}
+        {showEstimateForm && (
+          <div className={formStyles['form-container']}>
+            <div>
+              <h2 className={formStyles['form-title']}>Project Estimate</h2>
+              <EstimateForm projectId={selectedProjectId} onSave={() => setShowEstimateForm(false)} />
+            </div>
+          </div>
+        )}
+        
+        {/* Inline Bidding Documents Form */}
+        {showBiddingDocumentsForm && (
+          <div className={formStyles['form-container']}>
+            <div>
+              <h2 className={formStyles['form-title']}>Documents</h2>
+              <BiddingDocumentsForm projectId={selectedProjectId} onSave={() => setShowBiddingDocumentsForm(false)} />
+            </div>
+          </div>
+        )}
+        
+        {/* Inline Labor Compliance Form */}
+        {showLaborComplianceForm && (
+          <div className={formStyles['form-container']}>
+            <div>
+              <h2 className={formStyles['form-title']}>Labor Compliance</h2>
+              <LaborComplianceForm projectId={selectedProjectId} onSave={() => setShowLaborComplianceForm(false)} />
             </div>
           </div>
         )}

@@ -60,10 +60,25 @@ const EstimatingAIAssistant: React.FC = () => {
   }
   
   const [selectedMaterials, setSelectedMaterials] = useState<SelectedMaterialItem[]>([]);
+  
+  // State for tracking materials with coverage numbers - moved to parent component to persist across navigation
+  const [materialsWithCoverage, setMaterialsWithCoverage] = useState<{[key: string]: number | null}>({});
+  // State to track which material is currently being edited
+  const [editingCoverage, setEditingCoverage] = useState<string | null>(null);
 
-  // Load categories on component mount
+  // Load categories and restore saved coverage values on component mount
   useEffect(() => {
     loadCategories();
+    
+    // Restore coverage values from localStorage if available
+    try {
+      const savedCoverage = localStorage.getItem('roofingMaterialsCoverage');
+      if (savedCoverage) {
+        setMaterialsWithCoverage(JSON.parse(savedCoverage));
+      }
+    } catch (error) {
+      console.error('Failed to restore coverage values from localStorage:', error);
+    }
   }, []);
 
   const loadCategories = async () => {
@@ -383,6 +398,15 @@ const EstimatingAIAssistant: React.FC = () => {
     setShowImageModal(true);
   };
 
+  // Function to save coverage values to localStorage
+  const saveCoverageToLocalStorage = (coverage: {[key: string]: number | null}) => {
+    try {
+      localStorage.setItem('roofingMaterialsCoverage', JSON.stringify(coverage));
+    } catch (error) {
+      console.error('Failed to save coverage values to localStorage:', error);
+    }
+  };
+  
   // Handler for managing selected materials across all steps
   const handleMaterialItemSelect = (itemId: string, itemName: string) => {
     // Get current material details
@@ -395,6 +419,10 @@ const EstimatingAIAssistant: React.FC = () => {
     if (isAlreadySelected) {
       // Remove from selected items
       setSelectedMaterials(selectedMaterials.filter(item => item.id !== itemId));
+      console.log(`Removed material: ${itemName}`);
+      
+      // Note: We intentionally DO NOT remove coverage values when an item is deselected
+      // This ensures coverage values persist even if items are toggled on/off
     } else {
       // Create a user-friendly type label based on category and subcategory
       let typeLabel = '';
@@ -412,7 +440,7 @@ const EstimatingAIAssistant: React.FC = () => {
         'drip-edge': 'Drip Edge',
         'counter-flashing': 'Counter Flashing',
         'metal-coping': 'Metal Coping',
-        'precaster-coping': 'Precaster Coping',
+        'precast-coping': 'Precast Coping',
         'stone-coping': 'Stone Coping'
       };
       
@@ -430,6 +458,22 @@ const EstimatingAIAssistant: React.FC = () => {
           type: typeLabel
         }
       ]);
+      
+      // Send webhook for analytics
+      sendToWebhook({
+        action: 'material_selected',
+        material_id: itemId,
+        material_name: itemName,
+        category: currentCategory,
+        subcategory: currentSubcategory,
+        type: typeLabel
+      }).catch(error => {
+        console.error('Failed to track material selection:', error);
+      });
+      
+      // Save current coverage values to localStorage to ensure persistence
+      // This ensures coverage values are maintained even when navigating between steps
+      saveCoverageToLocalStorage(materialsWithCoverage);
     }
   };
 
@@ -558,10 +602,6 @@ const EstimatingAIAssistant: React.FC = () => {
 
   // Selected Materials Sidebar Component
   const SelectedMaterialsSidebar: React.FC = () => {
-    // State for tracking materials with coverage numbers
-    const [materialsWithCoverage, setMaterialsWithCoverage] = useState<{[key: string]: number | null}>({});
-    // State to track which material is currently being edited
-    const [editingCoverage, setEditingCoverage] = useState<string | null>(null);
     // State for submission loading status
     const [isSubmitting, setIsSubmitting] = useState(false);
     
@@ -573,10 +613,20 @@ const EstimatingAIAssistant: React.FC = () => {
     // Handle coverage input change
     const handleCoverageChange = (materialId: string, value: string) => {
       const numValue = value === '' ? null : parseFloat(value);
-      setMaterialsWithCoverage(prev => ({
-        ...prev,
+      const updatedCoverage = {
+        ...materialsWithCoverage,
         [materialId]: numValue
-      }));
+      };
+      
+      // Update state
+      setMaterialsWithCoverage(updatedCoverage);
+      
+      // Persist to localStorage
+      try {
+        localStorage.setItem('roofingMaterialsCoverage', JSON.stringify(updatedCoverage));
+      } catch (error) {
+        console.error('Failed to save coverage values to localStorage:', error);
+      }
     };
     
     // Handle coverage input blur (when user clicks away)
@@ -597,18 +647,42 @@ const EstimatingAIAssistant: React.FC = () => {
 
     const handleRoofingSubmit = async () => {
       setIsSubmitting(true);
+      // Filter roofing items that have coverage values
       const roofingItems = selectedMaterials.filter(item => item.category === 'roofing');
-      const finalEstimate = roofingItems.map(item => ({
-        ...item,
-        coverage_number: materialsWithCoverage[item.id] || null
-      }));
+      const itemsWithCoverage = roofingItems.filter(item => {
+        const coverage = materialsWithCoverage[item.id];
+        return coverage !== undefined && coverage !== null;
+      });
+      
+      // Only proceed if there are items with coverage
+      if (itemsWithCoverage.length === 0) {
+        alert('Please add coverage values to at least one material before submitting.');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Create a simplified payload with only necessary information
+      const finalPayload = {
+        total_items_with_coverage: itemsWithCoverage.length,
+        items: itemsWithCoverage.map(item => ({
+          id: item.id,
+          name: item.name,
+          type: item.type,
+          coverage: materialsWithCoverage[item.id]
+        }))
+      };
+      
+      // Save the current state of coverage values before submission
+      saveCoverageToLocalStorage(materialsWithCoverage);
     
       try {
+        // Only send data when Total button is clicked
         await sendToWebhook({
           action: 'submit_roofing_estimate',
-          estimate: finalEstimate
+          coverage_count: itemsWithCoverage.length,
+          estimate: finalPayload
         });
-        alert('Roofing estimate submitted successfully!');
+        alert(`Roofing estimate with ${itemsWithCoverage.length} items submitted successfully!`);
       } catch (error) {
         console.error('Failed to submit roofing estimate:', error);
         alert('An error occurred while submitting the roofing estimate. Please try again.');
@@ -963,8 +1037,8 @@ const EstimatingAIAssistant: React.FC = () => {
         )}
           </div>
         </div>
-        {/* Persistent Selected Materials Sidebar */}
-        {isStarted && <SelectedMaterialsSidebar />}
+        {/* Selected Materials Sidebar - only shown when materials are selected */}
+        {isStarted && selectedMaterials.length > 0 && <SelectedMaterialsSidebar />}
       </div>
       {/* Image Modal */}
       <ImageModal 

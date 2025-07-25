@@ -20,6 +20,8 @@ export interface ProjectNavBarProps {
   onTabChange?: (tabId: string) => void;
   onIndexClick?: () => void;
   onEstimateClick?: () => void;
+  onBiddingDocumentsClick?: () => void;
+  onLaborComplianceClick?: () => void;
 }
 
 export interface NavItem {
@@ -32,7 +34,9 @@ const ProjectNavBar: React.FC<ProjectNavBarProps> = ({
   activeTab = 'Project Info',
   onTabChange = () => {},
   onIndexClick = () => {},
-  onEstimateClick = () => {}
+  onEstimateClick = () => {},
+  onBiddingDocumentsClick = () => {},
+  onLaborComplianceClick = () => {}
 }) => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [progressModalOpen, setProgressModalOpen] = useState<boolean>(false);
@@ -47,6 +51,16 @@ const ProjectNavBar: React.FC<ProjectNavBarProps> = ({
 
     if (tabId === 'Estimate') {
       onEstimateClick();
+      return;
+    }
+    
+    if (tabId === 'Bidding Documents') {
+      onBiddingDocumentsClick();
+      return;
+    }
+    
+    if (tabId === 'Labor Compliance') {
+      onLaborComplianceClick();
       return;
     }
 
@@ -72,21 +86,21 @@ const ProjectNavBar: React.FC<ProjectNavBarProps> = ({
       label: 'Estimate',
       icon: <FaFileInvoiceDollar />
     },
-    {
-      id: 'POs',
-      label: 'POs',
-      icon: <FaFileAlt />
-    },
+    // {
+    //   id: 'POs',
+    //   label: 'POs',
+    //   icon: <FaFileAlt />
+    // },
     {
       id: 'Bidding Documents',
-      label: 'Bidding Documents',
+      label: 'Documents',
       icon: <FaFileSignature />
     },
-    {
-      id: 'Contracts',
-      label: 'Contracts',
-      icon: <FaFileContract />
-    },
+    // {
+    //   id: 'Contracts',
+    //   label: 'Contracts',
+    //   icon: <FaFileContract />
+    // },
     {
       id: 'Billing Documents',
       label: 'Billing Documents',

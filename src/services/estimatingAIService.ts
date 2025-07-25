@@ -69,6 +69,13 @@ export class EstimatingAIService {
   // Fetch step configuration (intro messages, etc.) for a specific subcategory
   static async getStepConfig(category: string, subcategory: string): Promise<EstimatingAIData | null> {
     try {
+      // Validate inputs to prevent bad requests
+      if (!category || !subcategory) {
+        console.warn('getStepConfig called with empty category or subcategory');
+        return null;
+      }
+
+      // Use maybeSingle() instead of single() to prevent 400 errors
       const { data, error } = await supabase
         .from('estimating_ai')
         .select('*')
@@ -77,11 +84,12 @@ export class EstimatingAIService {
         .eq('is_active', true)
         .not('subtitle', 'is', null)
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      if (error) {
         console.error('Error fetching step config:', error);
-        throw error;
+        // Log error but don't throw it
+        return null;
       }
 
       return data || null;
