@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import ProjectWeatherComponent from './ProjectWeatherComponent';
+import ProjectWeatherComponent from '../Weather/ProjectWeatherComponent';
 import { Project } from '../../services/projectService';
 import '../../styles/WeatherTabContent.css';
 

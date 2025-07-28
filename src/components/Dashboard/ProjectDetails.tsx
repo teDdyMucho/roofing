@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaFileAlt, FaPencilAlt } from 'react-icons/fa';
+import { FaPencilAlt, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { Project, getProjectById } from '../../services/projectService';
 import ProjectNavBar from './ProjectNavBar';
 import EditProjectModal from './EditProjectModal';
@@ -118,29 +118,18 @@ interface ProjectDetailsInfoProps {
   value: number | null;
   startDate: string | null;
   endDate: string | null;
-  onPreviewClick: (e: React.MouseEvent) => void;
   onEditClick: (e: React.MouseEvent) => void;
+  handleToggleProjectList: () => void;
 }
 
 const ProjectDetailsInfoGroup: React.FC<ProjectDetailsInfoProps> = ({ 
   value, 
   startDate, 
   endDate, 
-  onEditClick,
-  onPreviewClick,
+  onEditClick
 }) => (
   <div className="project-details-info-group">
     <div className="buttons-vertical">
-      <button 
-        className="action-button action-preview" 
-        onClick={onPreviewClick}
-        aria-label="Preview Project"
-      >
-        <span className="button-icon-wrapper">
-          <FaFileAlt className="button-icon" />
-        </span>
-        <span className="button-text">Preview Project</span>
-      </button>
       <button 
         className="action-button action-edit" 
         onClick={onEditClick}
@@ -169,7 +158,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
   isProcessingDocument,
   documentKeywords,
   documentError,
-  handleDeleteProject
+  handleDeleteProject,
 }) => {
   const [ownerOpen, setOwnerOpen] = useState(false);
   const [bidOpen, setBidOpen] = useState(false);
@@ -187,6 +176,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
   const [activeNavTab, setActiveNavTab] = useState<string>('Project Index');
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const [showProjectList, setShowProjectList] = useState<boolean>(false);
   
   // Initialize and update currentProject when selectedProjectId or projects change
   useEffect(() => {
@@ -200,6 +190,14 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
   
   if (!selectedProjectId) return null;
   if (!currentProject) return <div className="project-not-found">Loading project...</div>;
+  
+  // Handler for toggling project list visibility
+  const handleToggleProjectList = () => {
+    // Create a custom event to notify parent component
+    const event = new CustomEvent('toggleProjectList', { bubbles: true });
+    document.dispatchEvent(event);
+    setShowProjectList(!showProjectList);
+  };
 
 
 
@@ -237,12 +235,6 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
     }
   };
 
-  // Handler for preview button click - navigates back to project selection screen
-  const handlePreviewClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    // Navigate back to the 'Select Project' screen by clearing the selected project
-    setSelectedProjectId(null);
-  };
   
   // Handler for navigation tab change
   const handleNavTabChange = (tab: string) => {
@@ -290,7 +282,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
         project={currentProject}
         onProjectUpdate={handleProjectUpdate}
       />
-      
+
       <div className="project-details-section">
         <div className="horizontal-layout">
           <ProjectHeader 
@@ -322,9 +314,9 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
             <ProjectDetailsInfoGroup 
               value={currentProject.value} 
               startDate={currentProject.start_date} 
-              endDate={currentProject.end_date} 
-              onPreviewClick={handlePreviewClick}
+              endDate={currentProject.end_date}
               onEditClick={handleEditClick} 
+              handleToggleProjectList={handleToggleProjectList}
             />
           </div>
         </div>
@@ -332,14 +324,24 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
   
       {/* Navigation bar positioned below the project details section */}
       <div className="project-nav-container">
-        <ProjectNavBar 
-          activeTab={activeNavTab}
-          onTabChange={handleNavTabChange}
-          onIndexClick={handleIndexClick}
-          onEstimateClick={handleEstimateClick}
-          onBiddingDocumentsClick={handleBiddingDocumentsClick}
-          onLaborComplianceClick={handleLaborComplianceClick}
-        />
+        <div className="navbar-with-toggle">
+          {/* Toggle Project List Button */}
+          <button 
+            className="toggle-project-list-btn" 
+            onClick={handleToggleProjectList}
+            title="Toggle Project List"
+          >
+            {showProjectList ? <FaChevronLeft /> : <FaChevronRight />}
+          </button>
+          <ProjectNavBar 
+            activeTab={activeNavTab}
+            onTabChange={handleNavTabChange}
+            onIndexClick={handleIndexClick}
+            onEstimateClick={handleEstimateClick}
+            onBiddingDocumentsClick={handleBiddingDocumentsClick}
+            onLaborComplianceClick={handleLaborComplianceClick}
+          />
+        </div>
   
         {/* Inline Project Index/Info below nav bar */}
         {showIndexForm && (

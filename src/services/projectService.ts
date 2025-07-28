@@ -19,6 +19,10 @@ export interface Project {
   workType: string | null;
   trade: string | null;
   leadSource: string | null;
+  // Project date fields
+  preBidConferenceDt: string | null;
+  bidDue: string | null;
+  rfiDue: string | null;
 }
 
 export interface NewProject {

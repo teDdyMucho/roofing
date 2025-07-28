@@ -26,37 +26,67 @@ interface CalendarViewProps {
   title?: string;
 }
 
-// Helper function to parse YYYY-MM-DD format dates
+// Helper function to parse date strings in various formats
 const parseYYYYMMDD = (dateString: string | null): Date => {
   if (!dateString) return new Date();
   
-  // Check if the date is in YYYY-MM-DD format
-  const isYYYYMMDD = /^\d{4}-\d{2}-\d{2}$/.test(dateString);
-  
-  if (isYYYYMMDD) {
-    // Parse YYYY-MM-DD format and ensure timezone doesn't affect the date
-    // Split the date string and create a date with local timezone
-    const [year, month, day] = dateString.split('-').map(num => parseInt(num));
-    const date = new Date(year, month - 1, day); // month is 0-indexed in JS Date
-    return date;
-  } else {
-    // Fallback to standard Date constructor
-    return new Date(dateString);
+  try {
+    // Check if the date is in human-readable format like "May 28, 2025, at 9am"
+    const humanReadablePattern = /([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})(,\s+at\s+[\d:]+[apm]+)?/;
+    const humanReadableMatch = dateString.match(humanReadablePattern);
+    
+    if (humanReadableMatch) {
+      // Extract month, day, year from the human-readable format
+      const monthName = humanReadableMatch[1];
+      const day = parseInt(humanReadableMatch[2]);
+      const year = parseInt(humanReadableMatch[3]);
+      
+      // Convert month name to month number (0-indexed)
+      const months: Record<string, number> = {
+        'january': 0, 'february': 1, 'march': 2, 'april': 3, 'may': 4, 'june': 5,
+        'july': 6, 'august': 7, 'september': 8, 'october': 9, 'november': 10, 'december': 11
+      };
+      
+      const monthLower = monthName.toLowerCase();
+      const monthIndex = months[monthLower];
+      if (monthIndex !== undefined) {
+        return new Date(year, monthIndex, day);
+      }
+    }
+    
+    // Check if the date is in YYYY-MM-DD format
+    const isYYYYMMDD = /^\d{4}-\d{2}-\d{2}$/.test(dateString);
+    
+    if (isYYYYMMDD) {
+      // Parse YYYY-MM-DD format and ensure timezone doesn't affect the date
+      // Split the date string and create a date with local timezone
+      const [year, month, day] = dateString.split('-').map(num => parseInt(num));
+      const date = new Date(year, month - 1, day); // month is 0-indexed in JS Date
+      return date;
+    } else if (dateString.includes('T') || dateString.includes(' ')) {
+      // Handle ISO format (YYYY-MM-DDTHH:MM:SS) or datetime with space separator
+      // Extract just the date part for calendar display
+      let datePart;
+      
+      if (dateString.includes('T')) {
+        // ISO format: YYYY-MM-DDTHH:MM:SS
+        datePart = dateString.split('T')[0];
+      } else {
+        // Space separator format: YYYY-MM-DD HH:MM:SS
+        datePart = dateString.split(' ')[0];
+      }
+      
+      // Now parse the date part
+      const [year, month, day] = datePart.split('-').map(num => parseInt(num));
+      return new Date(year, month - 1, day);
+    } else {
+      // Fallback to standard Date constructor
+      return new Date(dateString);
+    }
+  } catch (error) {
+    console.error('Error parsing date:', dateString, error);
+    return new Date(); // Return current date as fallback
   }
-};
-
-// Format date as "Month (full name), day (two digits), year (four digits)"
-const formatDateFull = (date: Date): string => {
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-  
-  const month = months[date.getMonth()];
-  const day = date.getDate().toString().padStart(2, '0');
-  const year = date.getFullYear();
-  
-  return `${month} ${day}, ${year}`;
 };
 
 const Calendar: React.FC<CalendarViewProps> = ({ title = 'Calendar' }) => {
@@ -69,8 +99,37 @@ const Calendar: React.FC<CalendarViewProps> = ({ title = 'Calendar' }) => {
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState(Views.MONTH);
   const [date, setDate] = useState(new Date());
-  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterCategory] = useState('all');
   const [showProjects, setShowProjects] = useState<boolean>(true);
+  
+  // Categories for filtering events
+  const [selectedCategories, setSelectedCategories] = useState(() => {
+    // Try to load saved state from localStorage
+    const savedState = localStorage.getItem('calendarCategoryFilters');
+    if (savedState) {
+      try {
+        return JSON.parse(savedState);
+      } catch (e) {
+        console.error('Error parsing saved category filters:', e);
+      }
+    }
+    
+    // Default state if nothing is saved
+    return {
+      jobWalks: false,
+      bidDueDate: false,
+      rfiDeadlines: false,
+      preConMeetings: false,
+      projectSchedules: false,
+      materialDelivery: false
+    };
+  });
+  
+  // Save category filter state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('calendarCategoryFilters', JSON.stringify(selectedCategories));
+  }, [selectedCategories]);
+  const [categoryFilter, setCategoryFilter] = useState('All Categories');
 
   // Fetch events and projects on component mount
   useEffect(() => {
@@ -178,100 +237,188 @@ const Calendar: React.FC<CalendarViewProps> = ({ title = 'Calendar' }) => {
     setSelectedEvent(null);
   };
 
-  // Convert projects to calendar events for display - separate start and end dates
+  // Calculate project events
   const projectEvents = useMemo(() => {
     if (!showProjects) return [];
     
     const events: CalendarEvent[] = [];
-    const sameDayProjects = new Map<string, Project[]>();
+    // Map to track events by date for merging
+    const eventsByDate: Record<string, { 
+      ids: string[], 
+      title: string, 
+      date: Date, 
+      categories: string[],
+      types: string[],
+      projectName: string
+    }> = {};
     
-    projects
-      .filter(project => project.start_date && project.end_date) // Only include projects with valid date ranges
-      .forEach(project => {
-        // Parse dates with explicit YYYY-MM-DD format handling
-        const startDate = parseYYYYMMDD(project.start_date as string);
-        const endDate = parseYYYYMMDD(project.end_date as string);
+    projects.forEach(project => {
+      // Regular project start/end dates
+      if (project.start_date) {
+        const date = parseYYYYMMDD(project.start_date);
         
-        // Check if start and end dates are the same day
-        const isSameDay = startDate.getFullYear() === endDate.getFullYear() && 
-                          startDate.getMonth() === endDate.getMonth() && 
-                          startDate.getDate() === endDate.getDate();
-        
-        // Create start date event with green highlight
         events.push({
           id: `project-start-${project.id}`,
-          title: project.name, // Just the project name without 'Start:' prefix
-          start: startDate,
-          end: startDate,
-          description: '', // No description data
-          location: project.address, // Place address in location field
+          title: `${project.name} (Start)`,
+          start: date,
+          end: date,
           allDay: true,
-          category: 'project-start',
-          project: project, // Store the original project data for reference
-          className: isSameDay ? 'same-day' : ''
+          category: 'project-start'
         });
+      }
+      
+      if (project.end_date) {
+        const date = parseYYYYMMDD(project.end_date);
         
-        // Create end date event with red highlight
         events.push({
           id: `project-end-${project.id}`,
-          title: project.name, // Just the project name without 'End:' prefix
-          start: endDate,
-          end: endDate,
-          description: '', // No description data
-          location: project.address, // Place address in location field
+          title: `${project.name} (End)`,
+          start: date,
+          end: date,
           allDay: true,
-          category: 'project-end',
-          project: project, // Store the original project data for reference
-          className: isSameDay ? 'same-day' : ''
+          category: 'project-end'
         });
+      }
+      
+      // Create temporary objects to track special date fields
+      const specialDates = [];
+      
+      // Pre-Bid Conference Date
+      if (project.preBidConferenceDt) {
+        specialDates.push({
+          id: `prebid-conference-${project.id}`,
+          date: parseYYYYMMDD(project.preBidConferenceDt),
+          type: 'Pre-Bid Conference',
+          category: 'prebid-conference'
+        });
+      }
+      
+      // Bid Due Date
+      if (project.bidDue) {
+        specialDates.push({
+          id: `bid-due-${project.id}`,
+          date: parseYYYYMMDD(project.bidDue),
+          type: 'Bid Due',
+          category: 'bid-due'
+        });
+      }
+      
+      // RFI Due Date
+      if (project.rfiDue) {
+        specialDates.push({
+          id: `rfi-due-${project.id}`,
+          date: parseYYYYMMDD(project.rfiDue),
+          type: 'RFI Due',
+          category: 'rfi-due'
+        });
+      }
+      
+      // Process special dates and merge if they fall on the same day
+      specialDates.forEach(specialDate => {
+        const dateKey = specialDate.date.toISOString().split('T')[0];
         
-        // Track projects with same start/end date for potential UI adjustments
-        if (isSameDay) {
-          const dateKey = startDate.toISOString().split('T')[0];
-          if (!sameDayProjects.has(dateKey)) {
-            sameDayProjects.set(dateKey, []);
+        if (!eventsByDate[dateKey]) {
+          eventsByDate[dateKey] = {
+            ids: [specialDate.id],
+            title: `${project.name} (${specialDate.type})`,
+            date: specialDate.date,
+            categories: [specialDate.category],
+            types: [specialDate.type],
+            projectName: project.name
+          };
+        } else {
+          // If we already have an event on this date, merge them
+          eventsByDate[dateKey].ids.push(specialDate.id);
+          eventsByDate[dateKey].categories.push(specialDate.category);
+          eventsByDate[dateKey].types.push(specialDate.type);
+          
+          // Only update project name if it's the same project
+          if (eventsByDate[dateKey].projectName === project.name) {
+            // Update title to show multiple types
+            eventsByDate[dateKey].title = `${project.name} (${eventsByDate[dateKey].types.join(', ')})`;  
+          } else {
+            // If different projects, show 'Multiple Events'
+            eventsByDate[dateKey].title = 'Multiple Events';  
           }
-          sameDayProjects.get(dateKey)?.push(project);
         }
       });
-      
+    });
+    
+    // Add merged events to the events array
+    Object.values(eventsByDate).forEach(mergedEvent => {
+      events.push({
+        id: mergedEvent.ids.join('-'),
+        title: mergedEvent.title,
+        start: mergedEvent.date,
+        end: mergedEvent.date,
+        allDay: true,
+        category: mergedEvent.categories.join(','),
+        description: `Types: ${mergedEvent.types.join(', ')}`
+      });
+    });
+    
     return events;
   }, [projects, showProjects]);
-  
+
   // Filter events by category
   const filteredEvents = useMemo(() => {
     // Combine regular events and project events
     const allEvents = [...events, ...projectEvents];
     
-    if (filterCategory === 'all') return allEvents;
-    return allEvents.filter(event => event.category === filterCategory);
-  }, [events, projectEvents, filterCategory]);
-  
-  // Identify projects nearing their end date (within 7 days)
-  const projectsNearingDeadline = useMemo(() => {
-    const today = new Date();
-    const warningDays = 7; // Projects ending within 7 days
+    let filtered = [...allEvents];
     
-    return projects
-      .filter(project => {
-        if (!project.end_date) return false;
-        
-        const endDate = parseYYYYMMDD(project.end_date as string);
-        const daysRemaining = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        
-        // Return projects that end within the next 7 days and haven't passed yet
-        return daysRemaining >= 0 && daysRemaining <= warningDays;
-      })
-      .sort((a, b) => {
-        // Sort by closest end date first
-        const endDateA = parseYYYYMMDD(a.end_date as string).getTime();
-        const endDateB = parseYYYYMMDD(b.end_date as string).getTime();
-        return endDateA - endDateB;
-      });
-  }, [projects]);
-
-  // We don't need this anymore as we're using a fixed set of categories
-  // Including 'project' category
+    // Apply main category filter
+    if (filterCategory !== 'all') {
+      filtered = filtered.filter(event => event.category === filterCategory);
+    }
+    
+    // Apply category group filter
+    if (categoryFilter !== 'All Categories') {
+      if (categoryFilter === 'Admin') {
+        filtered = filtered.filter(event => 
+          ['admin', 'meeting', 'internal'].includes(String(event.category).toLowerCase()));
+      } else if (categoryFilter === 'Projects') {
+        filtered = filtered.filter(event => 
+          ['project', 'client', 'site'].includes(String(event.category).toLowerCase()));
+      } else if (categoryFilter === 'Example') {
+        filtered = filtered.filter(event => 
+          ['example', 'demo', 'sample'].includes(String(event.category).toLowerCase()));
+      } else if (categoryFilter === 'Project StartDate') {
+        filtered = filtered.filter(event => 
+          String(event.category).toLowerCase() === 'project-start');
+      } else if (categoryFilter === 'Project EndDate') {
+        filtered = filtered.filter(event => 
+          String(event.category).toLowerCase() === 'project-end');
+      }
+    }
+    
+    // Apply specific category filters
+    filtered = filtered.filter(event => {
+      const category = String(event.category).toLowerCase();
+      
+      // Filter job walks
+      if (category.includes('job walk') && !selectedCategories.jobWalks) return false;
+      
+      // Filter bid due dates - both regular events and project bid due dates
+      if ((category.includes('bid') || category === 'bid-due') && !selectedCategories.bidDueDate) return false;
+      
+      // Filter RFI deadlines - both regular events and project RFI due dates
+      if ((category.includes('rfi') || category === 'rfi-due') && !selectedCategories.rfiDeadlines) return false;
+      
+      // Filter pre-con meetings and pre-bid conferences
+      if ((category.includes('pre-con') || category.includes('precon') || category === 'prebid-conference') && !selectedCategories.preConMeetings) return false;
+      
+      // Filter project schedules
+      if (category.includes('schedule') && !selectedCategories.projectSchedules) return false;
+      
+      // Filter material delivery
+      if ((category.includes('material') || category.includes('delivery')) && !selectedCategories.materialDelivery) return false;
+      
+      return true;
+    });
+    
+    return filtered;
+  }, [events, projectEvents, filterCategory, categoryFilter, selectedCategories]);
 
   // Custom event styling
   const eventStyleGetter = (event: CalendarEvent) => {
@@ -327,12 +474,12 @@ const Calendar: React.FC<CalendarViewProps> = ({ title = 'Calendar' }) => {
     setDate(newDate);
   };
 
-  // We're using the inline onChange handler in the select element
-
+  // Show loading state
   if (isLoading) {
     return <div className="calendar-loading">Loading calendar...</div>;
   }
 
+  // Show error state
   if (error) {
     return <div className="calendar-error">{error}</div>;
   }
@@ -340,93 +487,163 @@ const Calendar: React.FC<CalendarViewProps> = ({ title = 'Calendar' }) => {
   return (
     <div className="calendar-container">
       <div className="calendar-header">
-        <h2 className="calendar-title">{title}</h2>
-        <div className="calendar-controls">
-          <div className="calendar-filter">
-            <select 
-              value={filterCategory} 
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="filter-dropdown"
-            >
-              <option value="all">All Categories</option>
-              <option value="meeting">Meetings</option>
-              <option value="appointment">Appointments</option>
-              <option value="deadline">Deadlines</option>
-              <option value="reminder">Reminders</option>
-              <option value="project-start">Project Start Dates</option>
-              <option value="project-end">Project End Dates</option>
-            </select>
-            
-            <label className="project-toggle">
+        <h2>{title}</h2>
+        
+        {/* Categories Filter Section - Horizontal Layout */}
+        <div className="calendar-filters-row">
+          <div className="calendar-categories">
+            <label className={`category-checkbox ${selectedCategories.jobWalks ? 'active' : ''}`}>
               <input 
                 type="checkbox" 
-                checked={showProjects} 
+                checked={selectedCategories.jobWalks}
+                onChange={() => setSelectedCategories({...selectedCategories, jobWalks: !selectedCategories.jobWalks})}
+              />
+              <span>Job Walks</span>
+            </label>
+            
+            <label className={`category-checkbox ${selectedCategories.bidDueDate ? 'active' : ''}`}>
+              <input 
+                type="checkbox" 
+                checked={selectedCategories.bidDueDate}
+                onChange={() => setSelectedCategories({...selectedCategories, bidDueDate: !selectedCategories.bidDueDate})}
+              />
+              <span>Bid Due Date</span>
+            </label>
+            
+            <label className={`category-checkbox ${selectedCategories.rfiDeadlines ? 'active' : ''}`}>
+              <input 
+                type="checkbox" 
+                checked={selectedCategories.rfiDeadlines}
+                onChange={() => setSelectedCategories({...selectedCategories, rfiDeadlines: !selectedCategories.rfiDeadlines})}
+              />
+              <span>RFI Deadlines</span>
+            </label>
+            
+            <label className={`category-checkbox ${selectedCategories.preConMeetings ? 'active' : ''}`}>
+              <input 
+                type="checkbox" 
+                checked={selectedCategories.preConMeetings}
+                onChange={() => setSelectedCategories({...selectedCategories, preConMeetings: !selectedCategories.preConMeetings})}
+              />
+              <span>Pre-Con Meetings</span>
+            </label>
+            
+            <label className={`category-checkbox ${selectedCategories.projectSchedules ? 'active' : ''}`}>
+              <input 
+                type="checkbox" 
+                checked={selectedCategories.projectSchedules}
+                onChange={() => setSelectedCategories({...selectedCategories, projectSchedules: !selectedCategories.projectSchedules})}
+              />
+              <span>Project Schedules</span>
+            </label>
+            
+            <label className={`category-checkbox ${selectedCategories.materialDelivery ? 'active' : ''}`}>
+              <input 
+                type="checkbox" 
+                checked={selectedCategories.materialDelivery}
+                onChange={() => setSelectedCategories({...selectedCategories, materialDelivery: !selectedCategories.materialDelivery})}
+              />
+              <span>Material Delivery</span>
+            </label>
+          </div>
+          
+          <div className="filter-controls">
+            <select 
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="category-select"
+            >
+              <option value="All Categories">All Categories</option>
+              <option value="Admin">Admin</option>
+              <option value="Projects">Projects</option>
+              <option value="Example">Example</option>
+              <option value="Project StartDate">Project Start Date</option>
+              <option value="Project EndDate">Project End Date</option>
+            </select>
+            
+            <label className="toggle-projects">
+              <input 
+                type="checkbox"
+                checked={showProjects}
                 onChange={() => setShowProjects(!showProjects)}
               />
               <span>Show Projects</span>
             </label>
           </div>
-          <button 
-            className="add-event-button" 
-            onClick={() => {
-              setModalMode('add');
-              setSelectedEvent({
-                id: '',
-                title: '',
-                start: new Date(),
-                end: new Date(),
-                description: '',
-                location: '',
-                allDay: false
-              });
-              setIsModalOpen(true);
-            }}
-          >
-            <span className="button-icon">+</span>
-            <span>Add Event</span>
-          </button>
         </div>
       </div>
+
       <div className="calendar-layout">
         {/* Placed Section */}
         <div className="placed-section">
-          <h3 className="placed-section-title">Deadlines</h3>
+          <h3 className="placed-section-title">Project List</h3>
           <div className="placed-section-content">
-            {projectsNearingDeadline.length > 0 ? (
-              <ul className="deadline-list">
-                {projectsNearingDeadline.map((project, index) => {
-                  const endDate = parseYYYYMMDD(project.end_date as string);
-                  const today = new Date();
-                  const daysRemaining = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                  
-                  // Determine urgency class based on days remaining
-                  let urgencyClass = '';
-                  if (daysRemaining <= 2) urgencyClass = 'high-urgency';
-                  else if (daysRemaining <= 5) urgencyClass = 'medium-urgency';
-                  else urgencyClass = 'low-urgency';
-                  
-                  return (
-                    <li 
-                      key={project.id} 
-                      className={`deadline-item ${urgencyClass}`}
-                      style={{ '--item-index': index } as React.CSSProperties}
-                    >
+            {/* Projects with deadlines */}
+            <div className="deadlines-list">
+              {projects && projects.length > 0 ? (
+                projects.map(project => (
+                  <div key={project.id} className="deadline-project-item">
+                    <div className="deadline-project-header">
                       <div className="deadline-project-name">{project.name}</div>
-                      <div className="deadline-project-date">
-                        {formatDateFull(endDate)}
+                      <div className="deadline-project-status active">active</div>
+                    </div>
+                    {/* Display project deadlines if they exist */}
+                    {(project.preBidConferenceDt || project.bidDue || project.rfiDue) && (
+                      <div className="project-deadlines">
+                        {project.bidDue && (
+                          <div className="project-info-item">
+                            <div className="project-info-label">Bid Due:</div>
+                            <div className="project-info-value">
+                              {new Date(project.bidDue).toLocaleDateString()}
+                            </div>
+                          </div>
+                        )}
+                        {project.rfiDue && (
+                          <div className="project-info-item">
+                            <div className="project-info-label">RFI Due:</div>
+                            <div className="project-info-value">
+                              {new Date(project.rfiDue).toLocaleDateString()}
+                            </div>
+                          </div>
+                        )}
+                        {project.preBidConferenceDt && (
+                          <div className="project-info-item">
+                            <div className="project-info-label">Pre-Bid:</div>
+                            <div className="project-info-value">
+                              {new Date(project.preBidConferenceDt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="deadline-days-remaining">
-                        {daysRemaining === 0 ? 'Due today' : 
-                         daysRemaining === 1 ? 'Due tomorrow' : 
-                         `${daysRemaining} days remaining`}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <div className="no-deadlines">No upcoming deadlines within 7 days</div>
-            )}
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="no-deadlines-message">
+                  No projects with deadlines
+                </div>
+              )}
+            </div>
+            
+            <button 
+              className="add-event-button" 
+              onClick={() => {
+                setModalMode('add');
+                setSelectedEvent({
+                  id: '',
+                  title: '',
+                  start: new Date(),
+                  end: new Date(),
+                  description: '',
+                  location: '',
+                  allDay: false
+                });
+                setIsModalOpen(true);
+              }}
+            >
+              <span className="button-icon">+</span>
+              <span>Add Event</span>
+            </button>
           </div>
         </div>
         

@@ -22,8 +22,6 @@ const LaborComplianceForm: React.FC<LaborComplianceFormProps> = ({ projectId, on
   const [fileCategory, setFileCategory] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-
-  
   // Fetch project files when component mounts
   useEffect(() => {
     const loadProjectFiles = async () => {

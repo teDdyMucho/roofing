@@ -210,6 +210,72 @@
   flex: 1;
 }
 
+/* Deadlines Section Styles */
+.deadlines-list {
+  margin-top: 10px;
+}
+
+.deadline-project-item {
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  border-left: 4px solid #3b82f6;
+  background-color: #f8fafc;
+  transition: all 0.2s ease;
+}
+
+.deadline-project-item:hover {
+  background-color: #f1f5f9;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.deadline-project-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.deadline-project-name {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #1e293b;
+}
+
+.deadline-project-status {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background-color: #38bdf8;
+  color: white;
+  font-weight: 500;
+}
+
+.deadline-project-status.active {
+  background-color: #38bdf8;
+}
+
+.deadline-project-status.completed {
+  background-color: #10b981;
+}
+
+.deadline-project-status.pending {
+  background-color: #f59e0b;
+}
+
+.deadline-project-description {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.no-deadlines-message {
+  color: #64748b;
+  font-style: italic;
+  text-align: center;
+  padding: 20px 0;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .side-panel {

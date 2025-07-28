@@ -131,6 +131,53 @@
 .placed-section-content {
   min-height: 200px;
   transition: opacity 0.3s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 50px); /* Subtract the height of the section title */
+}
+
+/* Add Event Button styling */
+.add-event-button {
+  padding: 10px 16px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  margin-top: auto; /* Push to bottom of flex container */
+  width: 100%;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.add-event-button:hover {
+  background-color: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.add-event-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.button-icon {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+/* Deadlines list styling */
+.deadlines-list {
+  margin-bottom: 20px;
+  flex-grow: 1;
+  overflow-y: auto;
+  max-height: calc(100% - 60px); /* Leave space for the button */
 }
 
 /* Deadline list styling */
@@ -392,6 +439,81 @@
   height: 8px;
   background-color: #2563eb;
   border-radius: 50%;
+}
+
+/* Category filter styles */
+.calendar-filters-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.calendar-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.category-checkbox {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  background-color: #f1f5f9;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #e2e8f0;
+  user-select: none;
+}
+
+.category-checkbox:hover {
+  background-color: #e2e8f0;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.category-checkbox.active {
+  background-color: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.category-checkbox input {
+  margin-right: 8px;
+}
+
+.category-checkbox span {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.category-dropdown {
+  margin-left: auto;
+}
+
+.category-select {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background-color: white;
+  color: #475569;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.category-select:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.category-select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
 .calendar-loading {

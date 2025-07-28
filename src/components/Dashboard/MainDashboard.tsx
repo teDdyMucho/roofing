@@ -11,7 +11,7 @@ import { uploadDocumentForKeywordExtraction } from '../../services/documentServi
 
 // Components
 import CalendarPage from '../Calendar/CalendarPage';
-import WeatherTabContent from './WeatherTabContent';
+import WeatherTabContent from '../Weather/WeatherTabContent';
 import {
   Sidebar,
   DashboardHeader,
@@ -99,6 +99,7 @@ const MainDashboard: React.FC = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectStatusFilter, setProjectStatusFilter] = useState<string>('All');
+  const [showProjectList, setShowProjectList] = useState<boolean>(true);
   // Loading states - these are used internally but flagged as unused by linter
   const [, setIsLoading] = useState(false);
   const [, setError] = useState<string | null>(null);
@@ -109,6 +110,19 @@ const MainDashboard: React.FC = () => {
   
   // Debug panel state
   const [showDebugPanel, setShowDebugPanel] = useState(false);
+  
+  // Event listener for toggle project list button
+  useEffect(() => {
+    const handleToggleProjectList = () => {
+      setShowProjectList(prevState => !prevState);
+    };
+    
+    document.addEventListener('toggleProjectList', handleToggleProjectList);
+    
+    return () => {
+      document.removeEventListener('toggleProjectList', handleToggleProjectList);
+    };
+  }, []);
   
   // New project form state
   const [newProject, setNewProject] = useState<NewProjectForm>({
@@ -207,7 +221,10 @@ const MainDashboard: React.FC = () => {
       category: 'Residential',
       workType: 'Repair',
       trade: 'Roofing',
-      leadSource: 'Referral'
+      leadSource: 'Referral',
+      preBidConferenceDt: null,
+      bidDue: null,
+      rfiDue: null
     }
   ];
 
@@ -879,7 +896,7 @@ const MainDashboard: React.FC = () => {
               
               <div className="projects-content-wrapper">
   {/* Left side: Projects Navigation */}
-  <div className={`projects-sidebar${selectedProjectId ? ' slide-out' : ''}`}>
+  <div className={`projects-sidebar${selectedProjectId && !showProjectList ? ' slide-out' : ''}`}>
     <ProjectList 
       projects={projects}
       selectedProjectId={selectedProjectId}
@@ -891,7 +908,7 @@ const MainDashboard: React.FC = () => {
   </div>
 
   {/* Right side: Combined Project Details and Chat */}
-  <div className={`project-combined-panel${selectedProjectId ? ' expand-full' : ''}`}>
+  <div className={`project-combined-panel${selectedProjectId && !showProjectList ? ' expand-full' : ''}`}>
     {selectedProjectId && (
       <>
         <ProjectDetails 

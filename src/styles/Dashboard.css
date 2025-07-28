@@ -844,6 +844,39 @@
   max-height: calc(100vh - 200px);
 }
 
+/* Navbar with toggle container */
+.navbar-with-toggle {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+/* Toggle Project List Button */
+.toggle-project-list-btn {
+  position: relative;
+  top: 0;
+  left: 10px;
+  margin-right: 30px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+  transition: var(--transition);
+}
+
+.toggle-project-list-btn:hover {
+  background-color: var(--primary-dark);
+  transform: scale(1.05);
+}
+
 /* Project Info Styles */
 .project-details-section {
   padding: 0.5rem;
@@ -915,8 +948,6 @@
   display: flex;
   align-items: center;
 }
-
-
 
 .info-row {
   display: flex;
