@@ -7,11 +7,11 @@ import {
   FaMoneyCheckAlt,
   FaHardHat,
   FaImages,
-  FaTasks,
   FaShieldAlt,
   FaComments,
   FaFolderOpen
 } from 'react-icons/fa';
+import ProgressBar from '../navbarDocuments/progressBar';
 
 import '../../styles/ProjectNavBar.css';
 
@@ -39,7 +39,6 @@ const ProjectNavBar: React.FC<ProjectNavBarProps> = ({
   onLaborComplianceClick = () => {}
 }) => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
-  const [progressModalOpen, setProgressModalOpen] = useState<boolean>(false);
 
   const handleTabClick = (tabId: string) => {
     onTabChange(tabId);
@@ -144,16 +143,17 @@ const ProjectNavBar: React.FC<ProjectNavBarProps> = ({
       </div>
       <div className="with-bottom-line"></div>
       <div className="nav-bottom-progress">
-        <button
-          className="progress-button"
-          onClick={() => setProgressModalOpen(!progressModalOpen)}
-        >
-          <FaTasks className="progress-icon" />
-          <span>Progress Bar (Tasks)</span>
-        </button>
+        <ProgressBar tasks={[
+          { id: '1', name: 'G Drive', completed: true },
+          { id: '2', name: 'Pre Bid', completed: true },
+          { id: '3', name: 'Calendar', completed: true },
+          { id: '4', name: 'Job Walk', completed: true },
+          { id: '5', name: 'Project Index', completed: false },
+          { id: '6', name: 'Bid Form', completed: false },
+          { id: '7', name: 'Pricing', completed: false },
+          { id: '8', name: 'Bid Bond', completed: false }
+        ]} />
       </div>
-
-      {/* Optional: modal logic (if needed in this component) */}
     </div>
   );
 };
