@@ -5,20 +5,22 @@ export interface Project {
   created_at: string;
   name: string;
   client: string;
+  owner_projects: string | null;
   address: string;
   status: 'Estimate' | 'Scheduled' | 'In Progress' | 'Completed' | 'Cancelled';
   start_date: string | null;
   end_date: string | null;
   value: number | null;
-  // Chat Details fields
+  // Project Owner fields
   phone: string | null;
   email: string | null;
-  mailing: string | null;
-  billing: string | null;
-  category: string | null;
-  workType: string | null;
-  trade: string | null;
-  leadSource: string | null;
+  representative: string | null;
+  // General Contractor fields
+  contractor_name: string | null;
+  contractor_address: string | null;
+  contractor_phone: string | null;
+  contractor_email: string | null;
+  contractor_representative: string | null;
   // Project date fields
   preBidConferenceDt: string | null;
   bidDue: string | null;
@@ -36,12 +38,6 @@ export interface NewProject {
   // Chat Details fields - all optional with null defaults
   phone?: string | null;
   email?: string | null;
-  mailing?: string | null;
-  billing?: string | null;
-  category?: string | null;
-  workType?: string | null;
-  trade?: string | null;
-  leadSource?: string | null;
 }
 
 /**
@@ -49,16 +45,22 @@ export interface NewProject {
  */
 export const fetchProjects = async (): Promise<Project[]> => {
   try {
+    console.log('Supabase URL:', process.env.REACT_APP_SUPABASE_URL ? 'Defined' : 'Undefined');
+    console.log('Supabase connection status:', supabase ? 'Connected' : 'Not connected');
+    
     const { data, error } = await supabase
       .from('projects')
       .select('*')
       .order('created_at', { ascending: false });
+    
+    console.log('Supabase query executed');
     
     if (error) {
       console.error('Error fetching projects:', error);
       throw error;
     }
     
+    console.log('Projects data received:', data ? `${data.length} records` : 'No data');
     return data || [];
   } catch (error) {
     console.error('Error in fetchProjects:', error);
@@ -71,6 +73,8 @@ export const fetchProjects = async (): Promise<Project[]> => {
  */
 export const fetchProjectById = async (id: string): Promise<Project | null> => {
   try {
+    console.log('Fetching project by ID:', id);
+    
     const { data, error } = await supabase
       .from('projects')
       .select('*')
@@ -81,6 +85,10 @@ export const fetchProjectById = async (id: string): Promise<Project | null> => {
       console.error('Error fetching project:', error);
       throw error;
     }
+    
+    console.log('Project data retrieved:', data);
+    console.log('Project owner_projects field:', data?.owner_projects);
+    console.log('Project client field:', data?.client);
     
     return data;
   } catch (error) {
@@ -94,18 +102,13 @@ export const fetchProjectById = async (id: string): Promise<Project | null> => {
  */
 export const createProject = async (project: NewProject): Promise<Project> => {
   try {
-    // Ensure all Chat Details fields are set to null by default
+    console.log('Creating project with data:', project);
+    // Only include fields that exist in the database schema
     const projectWithDefaults = {
       ...project,
       // Set default values for Chat Details fields if not provided
       phone: project.phone ?? null,
       email: project.email ?? null,
-      mailing: project.mailing ?? null,
-      billing: project.billing ?? null,
-      category: project.category ?? null,
-      workType: project.workType ?? null,
-      trade: project.trade ?? null,
-      leadSource: project.leadSource ?? null
     };
 
     const { data, error } = await supabase
@@ -127,13 +130,46 @@ export const createProject = async (project: NewProject): Promise<Project> => {
 };
 
 /**
- * Update an existing project
+ * Update an existing project and its associated general contractor
  */
 export const updateProject = async (id: string, updates: Partial<Project>): Promise<Project> => {
   try {
+    // Extract general contractor fields from updates
+    const contractorUpdates = {
+      name: updates.contractor_name,
+      address: updates.contractor_address,
+      phone: updates.contractor_phone,
+      email: updates.contractor_email,
+      representative: updates.contractor_representative
+    };
+    
+    // Extract project owner fields from updates and handle numeric fields
+    const projectUpdates: Record<string, any> = {
+      name: updates.name,
+      client: updates.client,
+      address: updates.address,
+      phone: updates.phone,
+      email: updates.email,
+      representative: updates.representative
+    };
+    
+    // Handle numeric fields - ensure value is properly converted if it exists in updates
+    if ('value' in updates) {
+      const valueUpdate = updates.value;
+      // Use type checking to handle different possible types
+      if (valueUpdate === null || valueUpdate === undefined) {
+        projectUpdates.value = null;
+      } else if (typeof valueUpdate === 'string' && valueUpdate === '') {
+        projectUpdates.value = null;
+      } else {
+        projectUpdates.value = valueUpdate;
+      }
+    }
+    
+    // Start a transaction to update both tables
     const { data, error } = await supabase
       .from('projects')
-      .update(updates)
+      .update(projectUpdates)
       .eq('id', id)
       .select()
       .single();
@@ -143,7 +179,70 @@ export const updateProject = async (id: string, updates: Partial<Project>): Prom
       throw error;
     }
     
-    return data;
+    // Check if general contractor exists for this project
+    const { data: existingContractor } = await supabase
+      .from('general_contractors')
+      .select('*')
+      .eq('project_id', id)
+      .single();
+    
+    let contractorOperationError = null;
+    
+    if (existingContractor) {
+      // Update existing contractor
+      const { error: updateError } = await supabase
+        .from('general_contractors')
+        .update(contractorUpdates)
+        .eq('project_id', id);
+      
+      contractorOperationError = updateError;
+    } else {
+      // Insert new contractor
+      const { error: insertError } = await supabase
+        .from('general_contractors')
+        .insert({
+          ...contractorUpdates,
+          project_id: id
+        });
+      
+      contractorOperationError = insertError;
+    }
+    
+    if (contractorOperationError) {
+      console.error('Error updating general contractor:', contractorOperationError);
+      // Don't throw here, we still want to return the updated project
+    }
+    
+    // Fetch the complete project with general contractor data
+    const { data: completeProject, error: fetchCompleteError } = await supabase
+      .from('projects')
+      .select(`
+        *,
+        general_contractors:general_contractors!project_id(*)
+      `)
+      .eq('id', id)
+      .single();
+    
+    if (fetchCompleteError) {
+      console.error('Error fetching complete project:', fetchCompleteError);
+      return data; // Return partial data if we can't fetch the complete project
+    }
+    
+    // Map the nested general_contractors data to the flat Project structure
+    const contractor = completeProject.general_contractors;
+    const result: Project = {
+      ...completeProject,
+      contractor_name: contractor ? contractor.name : null,
+      contractor_address: contractor ? contractor.address : null,
+      contractor_phone: contractor ? contractor.phone : null,
+      contractor_email: contractor ? contractor.email : null,
+      contractor_representative: contractor ? contractor.representative : null,
+    };
+    
+    // Remove the nested general_contractors property
+    delete (result as any).general_contractors;
+    
+    return result;
   } catch (error) {
     console.error('Error in updateProject:', error);
     throw error;
@@ -256,7 +355,7 @@ export const updateProjectIndex = async (id: string, indexData: any): Promise<Pr
       'id': 'id',
       'nameOfProject': 'name',
       'addressOfProject': 'address',
-      'ownerOfTheProject': 'client',
+      'ownerOfTheProject': 'owner_projects', // Changed from client to owner_projects
       'ownerEntityAddress': 'ownerEntityAddress',
       'department': 'department',
       'preBidConferenceDt': 'preBidConferenceDt',

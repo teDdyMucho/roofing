@@ -16,21 +16,22 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
   project,
   onProjectUpdate
 }) => {
-  // State for form fields
+  // Initialize form data with project values or defaults
   const [formData, setFormData] = useState({
-    // User Info fields
+    // Project Owner fields
+    name: project.name || '',
     client: project.client || '',
     phone: project.phone || '',
     email: project.email || '',
-    mailing: project.mailing || '',
-    billing: project.billing || '',
-    
-    // Location Info fields
+    representative: project.representative || '',
     address: project.address || '',
-    category: project.category || '',
-    workType: project.workType || '',
-    trade: project.trade || '',
-    leadSource: project.leadSource || ''
+    
+    // General Contractor fields
+    contractor_name: project.contractor_name || '',
+    contractor_address: project.contractor_address || '',
+    contractor_phone: project.contractor_phone || '',
+    contractor_email: project.contractor_email || '',
+    contractor_representative: project.contractor_representative || ''
   });
   
   // State for form validation
@@ -58,16 +59,20 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
     if (showModal) {
       // Initialize form data only once when the modal opens
       setFormData({
+        // Project Owner fields
+        name: project.name || '',
         client: project.client || '',
         phone: project.phone || '',
         email: project.email || '',
-        mailing: project.mailing || '',
-        billing: project.billing || '',
+        representative: project.representative || '',
         address: project.address || '',
-        category: project.category || '',
-        workType: project.workType || '',
-        trade: project.trade || '',
-        leadSource: project.leadSource || ''
+        
+        // General Contractor fields
+        contractor_name: project.contractor_name || '',
+        contractor_address: project.contractor_address || '',
+        contractor_phone: project.contractor_phone || '',
+        contractor_email: project.contractor_email || '',
+        contractor_representative: project.contractor_representative || ''
       });
       setError(null);
       setSuccessMessage(null);
@@ -248,8 +253,15 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
 
   if (!showModal) return null;
 
+  // Function to stop event propagation
+  const stopEventPropagation = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
   return (
-    <div className="modal-overlay">
+    <div 
+      className="modal-overlay"
+      onClick={stopEventPropagation}>
       {showConfirmation && (
         <div className="confirmation-dialog">
           <div className="confirmation-header">
@@ -275,7 +287,7 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
           </div>
         </div>
       )}
-      <div className="modal-content">
+      <div className="modal-content" onClick={stopEventPropagation}>
         
         <div className="modal-header">
           <h2>Edit Project Details</h2>
@@ -296,16 +308,20 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
                 // Update form with the latest data from the server
                 if (realtimeProject) {
                   setFormData({
+                    // Project Owner fields
+                    name: realtimeProject.name || '',
                     client: realtimeProject.client || '',
                     phone: realtimeProject.phone || '',
                     email: realtimeProject.email || '',
-                    mailing: realtimeProject.mailing || '',
-                    billing: realtimeProject.billing || '',
+                    representative: realtimeProject.representative || '',
                     address: realtimeProject.address || '',
-                    category: realtimeProject.category || '',
-                    workType: realtimeProject.workType || '',
-                    trade: realtimeProject.trade || '',
-                    leadSource: realtimeProject.leadSource || ''
+                    
+                    // General Contractor fields
+                    contractor_name: realtimeProject.contractor_name || '',
+                    contractor_address: realtimeProject.contractor_address || '',
+                    contractor_phone: realtimeProject.contractor_phone || '',
+                    contractor_email: realtimeProject.contractor_email || '',
+                    contractor_representative: realtimeProject.contractor_representative || ''
                   });
                   setHasUnsavedChanges(false);
                   setRealtimeProject(null);
@@ -332,6 +348,17 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
                     value={formData.client} 
                     onChange={handleInputChange} 
                     placeholder="Client name"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="address">Address</label>
+                  <input 
+                    type="text" 
+                    id="address" 
+                    name="address" 
+                    value={formData.address || ''} 
+                    onChange={handleInputChange} 
+                    placeholder="Project address"
                   />
                 </div>
                 
@@ -368,98 +395,87 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
                 </div>
                 
                 <div className="form-group">
-                  <label htmlFor="mailing">Mailing Address</label>
+                  <label htmlFor="representative">Representative</label>
                   <input 
                     type="text" 
-                    id="mailing" 
-                    name="mailing" 
-                    value={formData.mailing || ''} 
+                    id="representative" 
+                    name="representative" 
+                    value={formData.representative || ''} 
                     onChange={handleInputChange} 
-                    placeholder="Mailing address"
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="billing">Billing Address</label>
-                  <input 
-                    type="text" 
-                    id="billing" 
-                    name="billing" 
-                    value={formData.billing || ''} 
-                    onChange={handleInputChange} 
-                    placeholder="Billing address"
+                    placeholder="Project representative"
                   />
                 </div>
               </div>
             </div>
             
             <div className="modal-section-divider"></div>
-            
-            {/* Location Info Section */}
+            {/* General Contractor Section */}
             <div className="modal-section">
-              <h3>Location Info</h3>
+              <h3>General Contractor</h3>
               <div className="form-grid">
                 <div className="form-group">
-                  <label htmlFor="address">Project Address</label>
+                  <label htmlFor="contractor_name">Name</label>
                   <input 
                     type="text" 
-                    id="address" 
-                    name="address" 
-                    value={formData.address} 
+                    id="contractor_name" 
+                    name="contractor_name" 
+                    value={formData.contractor_name || ''} 
                     onChange={handleInputChange} 
-                    placeholder="Project address"
+                    placeholder="Contractor name"
                   />
                 </div>
                 
                 <div className="form-group">
-                  <label htmlFor="category">Category</label>
+                  <label htmlFor="contractor_address">Address</label>
                   <input 
                     type="text" 
-                    id="category" 
-                    name="category" 
-                    value={formData.category || ''} 
+                    id="contractor_address" 
+                    name="contractor_address" 
+                    value={formData.contractor_address || ''} 
                     onChange={handleInputChange} 
-                    placeholder="Project category"
+                    placeholder="Contractor address"
                   />
                 </div>
                 
                 <div className="form-group">
-                  <label htmlFor="workType">Work Type</label>
+                  <label htmlFor="contractor_phone">Phone</label>
                   <input 
                     type="text" 
-                    id="workType" 
-                    name="workType" 
-                    value={formData.workType || ''} 
+                    id="contractor_phone" 
+                    name="contractor_phone" 
+                    value={formData.contractor_phone || ''} 
                     onChange={handleInputChange} 
-                    placeholder="Type of work"
+                    placeholder="Contractor phone"
                   />
                 </div>
                 
                 <div className="form-group">
-                  <label htmlFor="trade">Trade</label>
+                  <label htmlFor="contractor_email">Email</label>
                   <input 
                     type="text" 
-                    id="trade" 
-                    name="trade" 
-                    value={formData.trade || ''} 
+                    id="contractor_email" 
+                    name="contractor_email" 
+                    value={formData.contractor_email || ''} 
                     onChange={handleInputChange} 
-                    placeholder="Trade"
+                    placeholder="Contractor email"
                   />
                 </div>
                 
                 <div className="form-group">
-                  <label htmlFor="leadSource">Lead Source</label>
+                  <label htmlFor="contractor_representative">Representative</label>
                   <input 
                     type="text" 
-                    id="leadSource" 
-                    name="leadSource" 
-                    value={formData.leadSource || ''} 
+                    id="contractor_representative" 
+                    name="contractor_representative" 
+                    value={formData.contractor_representative || ''} 
                     onChange={handleInputChange} 
-                    placeholder="Lead source"
+                    placeholder="Contractor representative"
                   />
                 </div>
               </div>
             </div>
+            
+            <div className="modal-section-divider"></div>
           </div>
           
           <div className="modal-footer">

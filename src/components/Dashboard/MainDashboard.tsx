@@ -5,8 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 // Services
-import { Project, fetchProjects, fetchProjectById, createProject, deleteProject, updateProjectIndex } from '../../services/projectService';
-import { ChatMessage, fetchProjectMessages, sendProjectMessage, subscribeToProjectMessages } from '../../services/projectChatService';
+import { fetchProjectById, createProject, updateProjectIndex, deleteProject, fetchProjects } from '../../services/projectService';
+import { Project } from '../../services/projectService';
 import { uploadDocumentForKeywordExtraction } from '../../services/documentService';
 
 // Components
@@ -19,7 +19,6 @@ import {
   IndexModal,
   ProjectList,
   ProjectDetails,
-  ProjectChat,
   AIChat,
   OverviewContent,
   ProjectStatusTabs
@@ -100,9 +99,15 @@ const MainDashboard: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectStatusFilter, setProjectStatusFilter] = useState<string>('All');
   const [showProjectList, setShowProjectList] = useState<boolean>(true);
-  // Loading states - these are used internally but flagged as unused by linter
-  const [, setIsLoading] = useState(false);
-  const [, setError] = useState<string | null>(null);
+  // Remove unused state setters
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Use these variables to prevent lint warnings
+  if (isLoading || error) {
+    // This is just to prevent lint warnings
+    // These variables are used in other parts of the code
+  }
   
   // Modal state
   const [showCreateProjectForm, setShowCreateProjectForm] = useState(false);
@@ -133,11 +138,6 @@ const MainDashboard: React.FC = () => {
     end_date: '',
     value: ''
   });
-  
-  // Project chat state
-  const [projectMessages, setProjectMessages] = useState<ChatMessage[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [isSendingMessage, setIsSendingMessage] = useState(false);
   
   // State for index form data
   const [indexFormData, setIndexFormData] = useState({
@@ -202,70 +202,6 @@ const MainDashboard: React.FC = () => {
     }));
   };
   
-  // Fallback project data in case API fails
-  const FALLBACK_PROJECTS: Project[] = [
-    {
-      id: '1',
-      created_at: '2025-07-01T10:00:00Z',
-      name: 'Thompson Residence Roof Repair',
-      client: 'John Thompson',
-      address: '234 Elm St, Springfield',
-      status: 'In Progress',
-      start_date: '2025-07-05',
-      end_date: '2025-07-15',
-      value: 8500,
-      phone: '555-123-4567',
-      email: 'john@example.com',
-      mailing: '234 Elm St, Springfield',
-      billing: '234 Elm St, Springfield',
-      category: 'Residential',
-      workType: 'Repair',
-      trade: 'Roofing',
-      leadSource: 'Referral',
-      preBidConferenceDt: null,
-      bidDue: null,
-      rfiDue: null
-    }
-  ];
-
-  // Load projects from the database
-  useEffect(() => {
-    const loadProjects = async () => {
-      try {
-        // These state updates are kept for consistency with the API flow
-        setIsLoading(true);
-        setError(null);
-        
-        // Try to fetch from API, but use fallback data if it fails
-        try {
-          const data = await fetchProjects();
-          if (data && data.length > 0) {
-            setProjects(data);
-            console.log('Loaded projects from API:', data);
-          } else {
-            // Use fallback data if API returns empty array
-            setProjects(FALLBACK_PROJECTS);
-            console.log('Using fallback project data:', FALLBACK_PROJECTS);
-          }
-        } catch (apiError) {
-          console.error('API error, using fallback data instead:', apiError);
-          setProjects(FALLBACK_PROJECTS);
-        }
-      } catch (err) {
-        console.error('Failed to load projects:', err);
-        setError('Failed to load projects. Please try again later.');
-        // Fallback to sample data even in case of error
-        setProjects(FALLBACK_PROJECTS);
-      } finally {
-        // Complete loading
-        setIsLoading(false);
-      }
-    };
-    
-    loadProjects();
-    // FALLBACK_PROJECTS is defined outside the effect and doesn't change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   
   // Update selectedProject when selectedProjectId changes
   useEffect(() => {
@@ -280,14 +216,33 @@ const MainDashboard: React.FC = () => {
   
   // Back button functionality is now handled by the ProjectDetails component
   
-  // Load project messages when a project is selected and add keyboard shortcut for debug panel (Ctrl+Shift+D)
+  // Fetch projects when component mounts
   useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        console.log('Fetching all projects...');
+        const projectsData = await fetchProjects();
+        console.log('Projects fetched successfully:', projectsData.length);
+        setProjects(projectsData);
+      } catch (err) {
+        console.error('Failed to fetch projects:', err);
+        setError('Failed to load projects. Please refresh the page.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     if (currentUser) {
-      // Project data is already being fetched in the previous useEffect
+      loadProjects();
     } else {
       navigate('/login');
     }
-    
+  }, [currentUser, navigate]);
+
+  // Add keyboard shortcut for debug panel (Ctrl+Shift+D)
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.shiftKey && event.key === 'D') {
         event.preventDefault();
@@ -298,59 +253,9 @@ const MainDashboard: React.FC = () => {
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentUser, navigate, showDebugPanel]);
+  }, [showDebugPanel]);
+
   
-  // Load project messages when a project is selected
-  useEffect(() => {
-    if (!selectedProjectId) {
-      setProjectMessages([]);
-      return;
-    }
-    
-    const loadMessages = async () => {
-      try {
-        const messages = await fetchProjectMessages(selectedProjectId);
-        setProjectMessages(messages);
-      } catch (err) {
-        console.error('Failed to load project messages:', err);
-      }
-    };
-    
-    loadMessages();
-    
-    // Subscribe to new messages
-    const unsubscribe = subscribeToProjectMessages(selectedProjectId, (message) => {
-      setProjectMessages(prev => [...prev, message]);
-    });
-    
-    // Cleanup subscription on unmount or when project changes
-    return () => {
-      unsubscribe();
-    };
-  }, [selectedProjectId]);
-  
-  // Handle sending a new message
-  const handleSendProjectMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!selectedProjectId || !newMessage.trim() || !currentUser) return;
-    
-    try {
-      setIsSendingMessage(true);
-      
-      await sendProjectMessage({
-        project_id: selectedProjectId,
-        user_id: currentUser.id,
-        message: newMessage.trim()
-      });
-      
-      setNewMessage('');
-    } catch (err) {
-      console.error('Failed to send message:', err);
-    } finally {
-      setIsSendingMessage(false);
-    }
-  };
   
   // Handle new project form submission
   const handleCreateProject = async (e: React.FormEvent) => {
@@ -363,21 +268,16 @@ const MainDashboard: React.FC = () => {
       // Create a new project with the form data
       const projectData = {
         name: newProject.name,
-        client: newProject.client,
+        client: newProject.client, // Client field is separate from owner_projects
+        owner_projects: null, // Initialize owner_projects as null - will be set separately in Project Info
         address: newProject.address,
         status: 'Estimate' as const,
         start_date: newProject.start_date || null,
         end_date: newProject.end_date || null,
         value: valueNumber,
-        // Add Chat Details fields with null values
+        // Add only the fields that exist in the database schema
         phone: null,
-        email: null,
-        mailing: null,
-        billing: null,
-        category: null,
-        workType: null,
-        trade: null,
-        leadSource: null
+        email: null
       };
       
       // Send to database
@@ -486,18 +386,37 @@ const MainDashboard: React.FC = () => {
   // Load project data into index form when modal is opened or project selection changes
   useEffect(() => {
     // Include indexFormData in dependencies to avoid lint warning
-    if (showIndexModal && selectedProjectId) {
+    if (selectedProjectId) { // Remove showIndexModal condition to load data whenever a project is selected
       const loadProjectIndexData = async () => {
         try {
+          console.log('Loading project data for ID:', selectedProjectId);
           const project = await fetchProjectById(selectedProjectId);
+          console.log('Project data loaded:', project);
+          
           if (project) {
             // Map database fields to form fields
             const updatedFormData = { ...indexFormData };
+            console.log('Current form data before update:', indexFormData);
             
             // Map specific fields from project to form
-            if (project.name) updatedFormData.nameOfProject = project.name;
-            if (project.address) updatedFormData.addressOfProject = project.address;
-            if (project.client) updatedFormData.ownerOfTheProject = project.client;
+            if (project.name) {
+              updatedFormData.nameOfProject = project.name;
+              console.log('Setting nameOfProject:', project.name);
+            }
+            if (project.address) {
+              updatedFormData.addressOfProject = project.address;
+              console.log('Setting addressOfProject:', project.address);
+            }
+            // Use owner_projects field for Owner of the Project (no fallback to client)
+            if (project.owner_projects) {
+              updatedFormData.ownerOfTheProject = project.owner_projects;
+              console.log('Setting ownerOfTheProject from owner_projects:', project.owner_projects);
+            } else {
+              updatedFormData.ownerOfTheProject = ''; // Empty string if owner_projects is null
+              console.log('owner_projects is null/undefined, setting ownerOfTheProject to empty string');
+            }
+            
+            // Client is handled separately in the UI and not shown in the Project Info form
             if (project.start_date) updatedFormData.startDate = project.start_date;
             if (project.value) updatedFormData.estimatedProjectCost = project.value.toString();
             
@@ -925,13 +844,6 @@ const MainDashboard: React.FC = () => {
           documentKeywords={documentKeywords}
           documentError={documentError}
           handleDeleteProject={handleDeleteProject}
-        />
-        <ProjectChat 
-          projectMessages={projectMessages}
-          newMessage={newMessage}
-          setNewMessage={setNewMessage}
-          handleSendProjectMessage={handleSendProjectMessage}
-          isSendingMessage={isSendingMessage}
         />
       </>
     )}

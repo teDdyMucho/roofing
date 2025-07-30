@@ -1,5 +1,4 @@
 import React from 'react';
-import { FaPaperPlane } from 'react-icons/fa';
 
 // Renamed to AIChatMessage to avoid conflicts with projectChatService.ChatMessage
 export interface AIChatMessage {
@@ -22,10 +21,6 @@ const AIChat: React.FC<AIChatProps> = ({
   setMessage,
   handleSendMessage
 }) => {
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleSendMessage(chatType);
-  };
 
   return (
     <div className="ai-chat-container">
@@ -34,33 +29,10 @@ const AIChat: React.FC<AIChatProps> = ({
       </div>
       
       <div className="ai-chat-messages">
-        {chatMessages.map((msg, index) => (
-          <div key={index} className={`ai-message ${msg.sender === 'user' ? 'user-message' : 'ai-response'}`}>
-            <div className="message-avatar">
-              {msg.sender === 'user' ? 'You' : 'AI'}
-            </div>
-            <div className="message-content">
-              {msg.message}
-            </div>
-          </div>
-        ))}
+        {/* Chat messages removed */}
       </div>
       
-      <form className="ai-chat-input" onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder={`Ask the ${chatType} AI assistant...`}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-        />
-        <button 
-          type="submit" 
-          className="send-button"
-          disabled={!message.trim()}
-        >
-          <FaPaperPlane />
-        </button>
-      </form>
+      {/* Chat input form removed */}
     </div>
   );
 };

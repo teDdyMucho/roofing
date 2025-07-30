@@ -151,6 +151,46 @@ const OverviewContent: React.FC<OverviewContentProps> = ({
           ))}
         </div>
       </div>
+            {/* Notifications Panel */}
+            <div className="dashboard-section">
+        <div className="section-header">
+          <h2>Recent Notifications</h2>
+          <button className="view-all-btn">View All</button>
+        </div>
+        <div className="notifications-container">
+          {notifications.map(notification => (
+            <div className="notification-item" key={notification.id}>
+              <div className="notification-icon">
+                <FaBell />
+              </div>
+              <div className="notification-content">
+                <p>{notification.message}</p>
+                <span className="notification-time">{notification.time}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+            {/* Notifications Panel */}
+            <div className="dashboard-section">
+        <div className="section-header">
+          <h2>Recent Notifications</h2>
+          <button className="view-all-btn">View All</button>
+        </div>
+        <div className="notifications-container">
+          {notifications.map(notification => (
+            <div className="notification-item" key={notification.id}>
+              <div className="notification-icon">
+                <FaBell />
+              </div>
+              <div className="notification-content">
+                <p>{notification.message}</p>
+                <span className="notification-time">{notification.time}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </>
   );
 };

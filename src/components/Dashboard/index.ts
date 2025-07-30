@@ -5,7 +5,6 @@ export { default as CreateProjectModal } from './CreateProjectModal';
 export { default as IndexModal } from './IndexModal';
 export { default as ProjectList } from './ProjectList';
 export { default as ProjectDetails } from './ProjectDetails';
-export { default as ProjectChat } from './ProjectChat';
 export { default as AIChat } from './AIChat';
 export { default as OverviewContent } from './OverviewContent';
 export { default as ProjectStatusTabs } from './ProjectStatusTabs';

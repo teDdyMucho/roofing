@@ -1,9 +1,14 @@
 .projects-container {
   width: 100%;
-  height: 100%;
-  padding: 20px;
+  height: auto;
+  min-height: 100%;
+  padding: 20px 20px 120px 20px;
   background-color: #f8f9fa;
+  position: relative;
   overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Specific styles for when embedded in Admin AI panel */
@@ -250,8 +255,12 @@
 
 /* Detail View Styles */
 .project-detail-view {
-  width: 100%;
-  height: 100%;
+  height: auto;
+  min-height: 100%;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .detail-header {
@@ -283,9 +292,6 @@
 .detail-header h2 {
   margin: 0;
 }
-
-
-
 .detail-status {
   font-size: 1rem;
 }
@@ -294,7 +300,7 @@
   display: grid;
   grid-template-columns: 1fr 2fr 1fr;
   gap: 20px;
-  height: calc(100% - 60px);
+  height: auto;
 }
 
 .project-info-panel {
@@ -302,7 +308,7 @@
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   padding: 20px;
-  height: 100%;
+  height: auto;
   overflow-y: auto;
 }
 
@@ -342,14 +348,6 @@
 
 .detail-progress {
   margin-top: 5px;
-}
-
-.project-chat-container {
-  height: 100%;
-}
-
-.project-team-container {
-  height: 100%;
 }
 
 /* Responsive adjustments */

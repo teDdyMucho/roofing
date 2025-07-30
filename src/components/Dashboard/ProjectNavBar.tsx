@@ -22,6 +22,7 @@ export interface ProjectNavBarProps {
   onEstimateClick?: () => void;
   onBiddingDocumentsClick?: () => void;
   onLaborComplianceClick?: () => void;
+  onPhotosClick?: () => void;
 }
 
 export interface NavItem {
@@ -36,7 +37,8 @@ const ProjectNavBar: React.FC<ProjectNavBarProps> = ({
   onIndexClick = () => {},
   onEstimateClick = () => {},
   onBiddingDocumentsClick = () => {},
-  onLaborComplianceClick = () => {}
+  onLaborComplianceClick = () => {},
+  onPhotosClick = () => {}
 }) => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
@@ -60,6 +62,11 @@ const ProjectNavBar: React.FC<ProjectNavBarProps> = ({
     
     if (tabId === 'Labor Compliance') {
       onLaborComplianceClick();
+      return;
+    }
+    
+    if (tabId === 'Photos') {
+      onPhotosClick();
       return;
     }
 
